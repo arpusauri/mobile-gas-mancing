@@ -20,8 +20,8 @@ const { width, height } = Dimensions.get('window');
 // Nanti kamu bisa ganti require-nya dengan gambar yang berbeda-beda
 const carouselData = [
   require('../assets/images/tempat1.jpg'),
-  require('../assets/images/tempat1.jpg'), // Contoh duplikat, ganti jika ada gambar lain
-  require('../assets/images/tempat1.jpg'), // Contoh duplikat
+  require('../assets/images/tempat2.jpg'), // Contoh duplikat, ganti jika ada gambar lain
+  require('../assets/images/tempat3.jpg'), // Contoh duplikat
 ];
 
 export default function OnboardingScreen() {
