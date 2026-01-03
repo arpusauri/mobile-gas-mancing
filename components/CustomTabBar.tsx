@@ -22,7 +22,7 @@ export default function CustomTabBar({ state, descriptors, navigation }: any) {
           let iconName: any = 'home';
           if (route.name === 'index') iconName = 'home'; 
           else if (route.name === 'cart') iconName = 'cart'; 
-          else if (route.name === 'booking') iconName = 'bookmark'; 
+          else if (route.name === 'ensiklopedia') iconName = 'bookmark'; 
           else if (route.name === 'profile') iconName = 'person';
 
           const isFocused = state.index === index;
