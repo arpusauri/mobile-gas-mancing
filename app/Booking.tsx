@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 // 1. IMPORT PENTING BUAT SWIPE
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import CustomHeader from '../components/CustomHeader';
 import HeaderCarousel from '../components/HeaderCarousel';
 import FooterBPC from '../components/FooterBPC';
 
@@ -106,12 +107,8 @@ export default function BookingScreen() {
             <HeaderCarousel images={headerImages} />
             
             {/* 2. Tombol Back & Judul (Tetap ada karena ini di luar Carousel) */}
-            <View style={styles.headerTopBar}>
-               <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                  <Ionicons name="arrow-back" size={24} color="black" />
-               </TouchableOpacity>
-               <Text style={styles.headerTitleText}>Booking</Text>
-               <View style={{width: 40}} /> 
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
+              <CustomHeader title="Booking" transparent={true} />
             </View>
             
             {/* 3. Info Lokasi & Rating */}
@@ -297,28 +294,6 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     zIndex: 1, // Tetap di atas gambar
-  },
-  headerTopBar: {
-    position: 'absolute',
-    top: 15,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    zIndex: 2, 
-  },
-  backButton: {
-    backgroundColor: 'transparent', 
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitleText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
   },
   headerInfo: {
     position: 'absolute',

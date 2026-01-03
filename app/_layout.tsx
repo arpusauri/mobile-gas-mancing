@@ -24,6 +24,8 @@ export default function RootLayout() {
         <Stack.Screen name="Booking" options={{ headerShown: false }} />
         <Stack.Screen name="Payment" options={{ headerShown: false }} />
         <Stack.Screen name="Confirmation" options={{ headerShown: false }} />
+        <Stack.Screen name="PesananSaya" options={{ headerShown: false }} />
+        <Stack.Screen name="DetailPesananSaya" options={{ headerShown: false }} />
         
         {/* Modal */}
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />

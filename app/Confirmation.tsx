@@ -17,6 +17,7 @@ import {
 import { 
   Ionicons 
 } from '@expo/vector-icons';
+import CustomHeader from '../components/CustomHeader';
 import FooterBPC from '../components/FooterBPC';
 
 export default function ConfirmationScreen() {
@@ -39,38 +40,11 @@ export default function ConfirmationScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.mainContainer}>
-      <Stack.Screen 
-        options={{ 
-          headerShown: false 
-        }} 
-      />
+    <View style={styles.mainContainer}>
+      <Stack.Screen options={{ headerShown: false }} />
       
-      {/* --- HEADER (IDENTIK) --- */}
-      <View style={styles.headerTopBar}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => {
-            router.back();
-          }}
-        >
-          <Ionicons 
-            name="arrow-back" 
-            size={24} 
-            color="black" 
-          />
-        </TouchableOpacity>
-
-        <Text style={styles.headerTitleText}>
-          Pembayaran
-        </Text>
-
-        <View 
-          style={{ 
-            width: 40 
-          }} 
-        /> 
-      </View>
+      {/* --- HEADER --- */}
+      <CustomHeader title="Pembayaran" />
 
       <ScrollView 
         contentContainerStyle={styles.scrollContent} 
@@ -233,12 +207,11 @@ export default function ConfirmationScreen() {
       <FooterBPC 
         buttonLabel="Bayar Sekarang"
         onPress={() => {
-          // 🔴 TODO: NAVIGASI KE PAGE SELANJUTNYA
-          alert("Pembayaran Berhasil!");
+          router.replace("/PesananSaya");
         }}
       />
 
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -246,25 +219,6 @@ const styles = StyleSheet.create({
   mainContainer: { 
     flex: 1, 
     backgroundColor: '#F8FAFC' 
-  },
-  headerTopBar: {
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center',
-    paddingHorizontal: 20, 
-    height: 60, 
-    marginTop: Platform.OS === 'android' ? 15 : 0,
-  },
-  backButton: { 
-    width: 40, 
-    height: 40, 
-    justifyContent: 'center', 
-    alignItems: 'center' 
-  },
-  headerTitleText: { 
-    fontSize: 18, 
-    fontWeight: 'bold', 
-    color: '#000' 
   },
   scrollContent: { 
     padding: 20, 
