@@ -17,6 +17,7 @@ import {
 import { 
   Ionicons 
 } from '@expo/vector-icons';
+import FooterBPC from '../components/FooterBPC';
 
 export default function ConfirmationScreen() {
   const router = useRouter();
@@ -228,20 +229,14 @@ export default function ConfirmationScreen() {
         </View>
       </ScrollView>
 
-      {/* --- FOOTER (IDENTIK DENGAN PAYMENT) --- */}
-      <View style={styles.footerContainer}>
-         <TouchableOpacity 
-            style={styles.fullWidthButton} 
-            onPress={() => {
-              // 🔴 TODO: NAVIGASI KE PAGE SUCCESS
-              alert("Pembayaran Berhasil!");
-            }}
-         >
-            <Text style={styles.fullWidthButtonText}>
-              Bayar Sekarang
-            </Text>
-         </TouchableOpacity>
-      </View>
+      {/* --- FOOTER --- */}
+      <FooterBPC 
+        buttonLabel="Bayar Sekarang"
+        onPress={() => {
+          // 🔴 TODO: NAVIGASI KE PAGE SELANJUTNYA
+          alert("Pembayaran Berhasil!");
+        }}
+      />
 
     </SafeAreaView>
   );
@@ -404,30 +399,5 @@ const styles = StyleSheet.create({
     fontSize: 14, 
     color: '#6B7280', 
     fontWeight: '500' 
-  },
-  footerContainer: {
-    position: 'absolute', 
-    bottom: -2, 
-    left: 0, 
-    right: 0, 
-    backgroundColor: '#102A63',
-    padding: 20, 
-    paddingBottom: 27, 
-    borderTopLeftRadius: 20, 
-    borderTopRightRadius: 20, 
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fullWidthButton: { 
-    backgroundColor: 'white', 
-    width: '100%', 
-    paddingVertical: 12, 
-    borderRadius: 25, 
-    alignItems: 'center' 
-  },
-  fullWidthButtonText: { 
-    color: '#102A63', 
-    fontWeight: 'bold', 
-    fontSize: 14 
   },
 });
