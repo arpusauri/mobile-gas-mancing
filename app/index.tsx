@@ -28,7 +28,8 @@ export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0); // <--- State untuk Dots aktif
 
   const handleSignUp = () => {
-    router.replace('/(tabs)');
+    // Arahkan langsung ke file Home.tsx
+    router.replace('/(tabs)'); 
   };
 
   return (
