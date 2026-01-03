@@ -42,9 +42,7 @@ export default function PaymentScreen() {
       <View style={styles.headerTopBar}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => {
-            router.push("/Booking");
-          }}
+          onPress={() => router.back()}
         >
           {/* 🔴 TODO: GANTI ICON BACK JIKA PERLU */}
           <Ionicons 

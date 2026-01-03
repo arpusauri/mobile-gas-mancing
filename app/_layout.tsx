@@ -15,7 +15,17 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
+        {/* Halaman Utama (Tabs) */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        
+        {/* 👇 DAFTARIN HALAMAN LAINNYA DI SINI BANG 👇 */}
+        {/* Biar mereka masuk tumpukan resmi & memorinya aman */}
+        
+        <Stack.Screen name="Booking" options={{ headerShown: false }} />
+        <Stack.Screen name="Payment" options={{ headerShown: false }} />
+        <Stack.Screen name="Confirmation" options={{ headerShown: false }} />
+        
+        {/* Modal */}
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />
