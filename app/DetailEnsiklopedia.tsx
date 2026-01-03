@@ -4,157 +4,220 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  ImageBackground,
   TouchableOpacity,
   Dimensions,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-const { width, height } = Dimensions.get('window');
+// IMPORT COMPONENT CAROUSEL
+import HeaderCarousel from '../components/HeaderCarousel';
 
-// Data Dummy untuk Ikan Nimo (sesuai desain)
-const FISH_DETAIL_DATA = {
-  id: '1',
-  name: 'Ikan Nimo',
-  image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?q=80&w=2070&auto=format&fit=crop', // Gambar Ikan Badut
-  description:
-    'Ikan ini lebih dikenal sebagai "Ikan Nimo" berkat popularitasnya di layar lebar. Ikan Badut hidup bersimbiosis dengan anemon laut. Uniknya, mereka kebal terhadap sengatan anemon dan menjadikannya sebagai rumah yang aman dari predator. Warna oranye cerah dengan garis putih vertikal menjadi ciri khas utamanya yang sangat ikonik di terumbu karang.',
-};
+const { height, width } = Dimensions.get('window');
+const HEADER_HEIGHT = height * 0.55; // Tinggi Header 55% dari layar
 
 export default function DetailEnsiklopediaScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const params = useLocalSearchParams();
 
-  // Simulasi pengambilan data berdasarkan ID (di sini kita pakai data dummy langsung)
-  const fish = FISH_DETAIL_DATA;
-
-  if (!fish) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text>Data ikan tidak ditemukan.</Text>
-      </View>
-    );
-  }
+  // Data Dummy Carousel (Karena params cuma bawa 1 gambar)
+  const headerImages = [
+    params.image as string,
+    'https://images.unsplash.com/photo-1582293881525-472097e88924?q=80&w=2070&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1535591273668-578e31182c4f?q=80&w=2070&auto=format&fit=crop',
+  ];
 
   return (
-    <View style={styles.container}>
+    // 1. WAJIB: GestureHandlerRootView (Sama kayak Booking Screen)
+    <GestureHandlerRootView style={styles.mainContainer}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollViewContent}>
-        {/* Header Gambar Ikan */}
-        <ImageBackground source={{ uri: fish.image }} style={styles.headerImage}>
-          <LinearGradient
-            colors={['rgba(0,0,0,0.6)', 'transparent', 'rgba(0,0,0,0.8)']}
-            style={styles.gradientOverlay}
-          />
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        bounces={false}
+        showsVerticalScrollIndicator={false}
+      >
+        
+        {/* === HEADER SECTION === */}
+        <View style={styles.headerContainer}>
+          
+          {/* A. CAROUSEL (Layer Paling Bawah) */}
+          <HeaderCarousel images={headerImages} height={HEADER_HEIGHT} />
 
-          {/* Header Atas: Tombol Kembali & Judul Halaman */}
-          <View style={styles.topHeaderBar}>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={24} color="white" />
-            </TouchableOpacity>
-            <View style={styles.titleContainer}>
-              <Ionicons name="book" size={20} color="white" style={{ marginRight: 8 }} />
-              <Text style={styles.headerTitleText}>Detail Ensiklopedia</Text>
-            </View>
-            <View style={{ width: 40 }} /> {/* Penyeimbang kanan */}
+          {/* B. OVERLAY GRADIENT (Biar tulisan kebaca) */}
+          {/* pointerEvents="none" biar jari tembus ke carousel pas swipe */}
+          <View style={styles.gradientOverlay} pointerEvents="none">
+             {/* Gradient Atas (Gelap dikit buat Status Bar) */}
+             <LinearGradient
+                colors={['rgba(0,0,0,0.6)', 'transparent']}
+                style={styles.topGradient}
+             />
+             {/* Gradient Bawah (Gelap buat Nama Ikan) */}
+             <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.8)']}
+                style={styles.bottomGradient}
+             />
           </View>
 
-          {/* Nama Ikan di Bagian Bawah Header */}
-          <Text style={styles.fishNameTitle}>{fish.name}</Text>
-        </ImageBackground>
+          {/* C. TOMBOL BACK & HEADER TITLE (Layer Atas) */}
+          <View style={styles.headerTopBar}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color="white" />
+            </TouchableOpacity>
+            
+            <View style={styles.titleContainer}>
+                <Ionicons name="book" size={20} color="white" style={{marginRight: 8}}/>
+                <Text style={styles.headerTitleText}>Detail Ensiklopedia</Text>
+            </View>
+            <View style={{ width: 40 }} /> 
+          </View>
 
-        {/* Kartu Putih Deskripsi */}
-        <View style={styles.descriptionCard}>
-          <Text style={styles.descriptionTitle}>Deskripsi</Text>
-          <Text style={styles.descriptionText}>{fish.description}</Text>
+          {/* D. NAMA IKAN (Di bagian bawah gambar) */}
+          <View style={styles.fishNameWrapper} pointerEvents="none">
+             <Text style={styles.fishNameText}>{params.name || 'Nama Ikan'}</Text>
+          </View>
+
         </View>
+
+        {/* === DESCRIPTION SECTION === */}
+        {/* Margin top negatif supaya "overlap" ke atas gambar */}
+        <View style={styles.contentContainer}>
+          <Text style={styles.sectionTitle}>Deskripsi</Text>
+          <Text style={styles.descriptionText}>
+            {params.description || 
+             'Ikan ini adalah salah satu spesies yang paling dikenal di terumbu karang. Mereka memiliki warna yang cerah dan pola yang unik, menjadikannya favorit bagi para penyelam dan pecinta akuarium. \n\nHabitat aslinya meliputi perairan hangat di wilayah Indo-Pasifik. Ikan ini sering ditemukan bersembunyi di balik anemon atau celah karang untuk menghindari predator.'}
+          </Text>
+          
+          {/* Dummy text tambahan biar bisa discroll */}
+          <Text style={[styles.descriptionText, {marginTop: 15}]}>
+             Makanan utama mereka adalah plankton dan alga kecil. Siklus hidup mereka sangat menarik, di mana beberapa spesies dapat berganti kelamin tergantung pada kondisi lingkungan dan struktur sosial dalam kelompoknya.
+          </Text>
+        </View>
+
       </ScrollView>
-    </View>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: '#F5F7FA', // Warna background abu muda
+    backgroundColor: '#F5F7FA',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollViewContent: {
+  scrollContent: {
     paddingBottom: 40,
   },
-  // Styles Header Gambar
-  headerImage: {
-    width: width,
-    height: height * 0.55, // Tinggi header sekitar setengah layar
-    justifyContent: 'space-between', // Header bar di atas, nama ikan di bawah
-    paddingTop: StatusBar.currentHeight || 40,
-    paddingBottom: 40, // Memberi ruang untuk nama ikan sebelum tertutup kartu
+  
+  // --- HEADER STYLES ---
+  headerContainer: {
+    height: HEADER_HEIGHT,
+    width: '100%',
+    position: 'relative', // Kunci agar children absolute bisa nempel di sini
+    backgroundColor: '#000', // Fallback color
   },
+  
+  // Layer Gradient
   gradientOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  topHeaderBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    ...StyleSheet.absoluteFillObject, // Full screen menutup headerContainer
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    zIndex: 1, // Di atas gambar
+    borderBottomLeftRadius: 30, // Ikutin lengkungan carousel
+    borderBottomRightRadius: 30,
+    overflow: 'hidden',
+  },
+  topGradient: {
+    height: 120,
+    width: '100%',
+  },
+  bottomGradient: {
+    height: 160,
+    width: '100%',
+  },
+
+  // Layer Navbar (Back Button)
+  headerTopBar: {
+    position: 'absolute',
+    top: StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 40,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10, // Paling atas supaya tombol bisa dipencet
   },
   backButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)', // Latar belakang transparan untuk tombol kembali
+    backgroundColor: 'rgba(0,0,0,0.2)', // Lingkaran transparan halus
     borderRadius: 20,
   },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.2)', // Opsional: latar belakang tipis biar teks jelas
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   headerTitleText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: 'white',
   },
-  fishNameTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+
+  // Layer Nama Ikan
+  fishNameWrapper: {
+    position: 'absolute',
+    bottom: 50, // Jarak dari bawah HeaderContainer (Biar gak ketutup kartu putih)
+    left: 25,
+    right: 25,
+    zIndex: 5,
+  },
+  fishNameText: {
+    fontSize: 32,
+    fontWeight: '800', // Extra Bold
     color: 'white',
-    paddingHorizontal: 25,
-    marginBottom: 10, // Jarak dari batas bawah header
-    textShadowColor: 'rgba(0, 0, 0, 0.3)', // Bayangan teks agar lebih menonjol
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 5,
+    textShadowRadius: 10,
   },
-  // Styles Kartu Deskripsi
-  descriptionCard: {
+
+  // --- CONTENT STYLES ---
+  contentContainer: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 35,
-    borderTopRightRadius: 35,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     paddingHorizontal: 25,
     paddingTop: 30,
     paddingBottom: 40,
-    marginTop: -35, // Margin negatif agar kartu menutupi bagian bawah header
-    minHeight: height * 0.5, // Memastikan kartu mengisi sisa layar
+    
+    // INI LOGIKA OVERLAPNYA:
+    marginTop: -35, // Tarik ke atas menutupi bagian bawah HeaderContainer
+    
+    // Shadow biar kelihatan misah dari gambar
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 5,
+    minHeight: height * 0.5, // Biar background putih minimal setengah layar
   },
-  descriptionTitle: {
+  sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333', // Warna teks judul gelap
-    marginBottom: 15,
+    marginBottom: 10,
+    color: '#1F2937',
   },
   descriptionText: {
-    fontSize: 16,
-    color: '#444', // Warna teks deskripsi sedikit lebih terang
-    lineHeight: 26, // Jarak antar baris agar nyaman dibaca
-    textAlign: 'justify', // Teks rata kanan-kiri
+    fontSize: 15,
+    lineHeight: 24,
+    color: '#4B5563',
+    textAlign: 'justify',
   },
 });

@@ -7,12 +7,11 @@ import {
 } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
 
-// Ambil lebar layar otomatis
 const width = Dimensions.get('window').width;
 
 interface HeaderCarouselProps {
-  images: string[];  // Data gambar (Array URL)
-  height?: number;   // Tinggi slider (Opsional, default 375)
+  images: string[];
+  height?: number;
 }
 
 export default function HeaderCarousel({ 
@@ -26,10 +25,13 @@ export default function HeaderCarousel({
         loop={true}
         width={width}
         height={height}
-        autoPlay={false} // Bisa diubah jadi true kalau mau gerak sendiri
+        autoPlay={false}
         data={images}
         scrollAnimationDuration={500}
-        // Biar swipe lancar di dalam ScrollView/GestureHandler
+        // TAMBAHAN PENTING 1: Biar swipe lancar di Android & iOS
+        panGestureHandlerProps={{
+          activeOffsetX: [-10, 10], // Mengutamakan geseran horizontal
+        }}
         enabled={true} 
         renderItem={({ item }) => (
           <Image 
@@ -39,8 +41,11 @@ export default function HeaderCarousel({
         )}
       />
       
-      {/* Overlay Gelap (Biar tulisan di atasnya kebaca) */}
-      <View style={styles.overlay} pointerEvents="none" />
+      {/* TAMBAHAN PENTING 2: 
+         Overlay di sini dihapus saja, karena kita akan pakai gradient 
+         di halaman DetailEnsiklopedia biar warnanya lebih nyatu sama teks.
+         Kalau dobel overlay, nanti gambarnya jadi terlalu gelap.
+      */}
     </View>
   );
 }
@@ -49,19 +54,13 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     position: 'relative',
-    // Border radius di sini biar gambarnya melengkung bawahnya
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    overflow: 'hidden', // Wajib, biar gambar gak bocor keluar border radius
+    borderBottomLeftRadius: 35, // Lengkungan disamakan dengan desain
+    borderBottomRightRadius: 35,
+    overflow: 'hidden', 
   },
   image: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.2)', // Gelap transparan
-    zIndex: 1, 
   },
 });
