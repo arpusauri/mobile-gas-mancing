@@ -12,64 +12,61 @@ import {
   Image 
 } from 'react-native';
 import { router, Stack } from 'expo-router';
-import Carousel from 'react-native-reanimated-carousel'; // <--- Import Carousel
+import Carousel from 'react-native-reanimated-carousel';
+
+// IMPORT COMPONENT BACKGROUND
+import BackgroundLayout from '../components/BackgroundLayout'; 
 
 const { width, height } = Dimensions.get('window');
+const isSmallScreen = height < 700;
 
-// --- DATA GAMBAR CAROUSEL ---
-// Nanti kamu bisa ganti require-nya dengan gambar yang berbeda-beda
 const carouselData = [
-  require('../assets/images/tempat1.jpg'),
-  require('../assets/images/tempat2.jpg'), // Contoh duplikat, ganti jika ada gambar lain
-  require('../assets/images/tempat3.jpg'), // Contoh duplikat
+  require('../assets/images/tempat1.jpg'), 
+  require('../assets/images/tempat2.jpg'),
+  require('../assets/images/tempat3.jpg'),
 ];
 
 export default function OnboardingScreen() {
-  const [currentIndex, setCurrentIndex] = useState(0); // <--- State untuk Dots aktif
+  const [currentIndex, setCurrentIndex] = useState(0);
 
+  // Navigasi ke Sign Up
   const handleSignUp = () => {
-    // Arahkan langsung ke file Home.tsx
-    router.replace('/(tabs)'); 
+    // Pastikan nama file kamu 'sign-up.tsx' atau sesuaikan string ini
+    router.push('/Signup'); 
   };
 
   return (
-    <View style={styles.container}>
+    <BackgroundLayout>
       <Stack.Screen options={{ headerShown: false }} /> 
       <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
       
-      {/* Background Hiasan (Sesuai kode kamu sebelumnya) */}
-      <View style={styles.blobTopLeft} />
-      <View style={styles.blobRightCenter} />
-      <View style={styles.waveBottom} />
-
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           
-          {/* --- BAGIAN CAROUSEL --- */}
-          <View style={{ marginTop: 20, height: height * 0.45 }}>
+          {/* CAROUSEL SECTION */}
+          <View style={styles.carouselContainer}>
             <Carousel
               loop
-              width={width} // Lebar area geser (full screen width biar smooth)
-              height={height * 0.45} // Tinggi area geser
-              autoPlay={true} // Otomatis geser
-              autoPlayInterval={3000} // Setiap 3 detik
+              width={width}
+              height={height * 0.45}
+              autoPlay={true}
+              autoPlayInterval={3000}
               data={carouselData}
               scrollAnimationDuration={1000}
-              onSnapToItem={(index) => setCurrentIndex(index)} // Update dots saat geser
+              onSnapToItem={(index) => setCurrentIndex(index)}
               renderItem={({ item }) => (
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                    {/* Container Kartu */}
+                <View style={styles.carouselItemWrapper}>
                     <View style={styles.cardContainer}>
                         <ImageBackground
-                        source={item} // Ambil source dari data array
-                        style={styles.cardImage}
-                        imageStyle={{ borderRadius: 30 }}
+                          source={item} 
+                          style={styles.cardImage}
+                          imageStyle={{ borderRadius: 30 }}
                         >
                         <View style={styles.cardOverlay}>
                             <Image 
-                            source={require('../assets/icon/logo_halaman_depan.png')} 
-                            style={styles.logoImage} 
-                            resizeMode="contain" 
+                              source={require('../assets/icon/logo_halaman_depan.png')} 
+                              style={styles.logoImage} 
+                              resizeMode="contain" 
                             />
                         </View>
                         </ImageBackground>
@@ -79,7 +76,7 @@ export default function OnboardingScreen() {
             />
           </View>
 
-          {/* --- DOTS INDICATOR (Dinamis) --- */}
+          {/* DOTS INDICATOR */}
           <View style={styles.dotsContainer}>
             {carouselData.map((_, index) => (
               <View 
@@ -92,7 +89,7 @@ export default function OnboardingScreen() {
             ))}
           </View>
 
-          {/* TEKS */}
+          {/* TEXT SECTION */}
           <View style={styles.textContainer}>
             <Text style={styles.titleText}>
               WELCOME TO <Text style={styles.highlightText}>GASMANCING</Text>{'\n'}
@@ -106,75 +103,56 @@ export default function OnboardingScreen() {
             </Text>
           </View>
 
-          {/* TOMBOL */}
+          {/* BUTTON SECTION */}
           <View style={styles.buttonContainer}>
+            {/* Tombol Sign Up */}
             <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
               <Text style={styles.signUpText}>SIGN UP</Text>
             </TouchableOpacity>
 
             <View style={styles.loginRow}>
               <Text style={styles.loginText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => alert('Fitur Login belum dibuat')}>
+              
+              {/* === BAGIAN YANG DIUPDATE === */}
+              {/* Mengarahkan ke file sign-in.tsx */}
+              <TouchableOpacity onPress={() => router.push('/Signin')}>
                 <Text style={styles.signInLink}>Sign In</Text>
               </TouchableOpacity>
+              {/* =========================== */}
+              
             </View>
           </View>
 
+          <View style={{height: 150}} /> 
+
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </BackgroundLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
   scrollContent: {
-    paddingBottom: 40,
     alignItems: 'center',
+    paddingBottom: 20,
   },
-  // Hiasan Latar Belakang
-  blobTopLeft: {
-    position: 'absolute',
-    top: -50,
-    left: -50,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(59, 149, 213, 0.2)',
+  carouselContainer: {
+     marginTop: isSmallScreen ? 20 : height * 0.08, 
+     height: height * 0.45 
   },
-  blobRightCenter: {
-    position: 'absolute',
-    top: height * 0.4,
-    right: -80,
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: 'rgba(22, 64, 129, 0.1)',
+  carouselItemWrapper: {
+    flex: 1, 
+    alignItems: 'center', 
+    justifyContent: 'center' 
   },
-  waveBottom: {
-    position: 'absolute',
-    bottom: -80,
-    left: -20,
-    right: -20,
-    height: 200,
-    backgroundColor: '#3B95D5',
-    borderTopLeftRadius: 200,
-    borderTopRightRadius: 200,
-    opacity: 0.8,
-  },
-  
-  // Style Kartu (Di dalam Carousel)
   cardContainer: {
-    width: width * 0.85, // Lebar kartu tetap 85% layar
-    height: '100%',      // Tinggi mengikuti parent carousel
-    borderRadius: 30,
-    elevation: 10,
-    shadowColor: "#000",
+    width: width * 0.82, 
+    height: '100%',
+    borderRadius: 35,
+    elevation: 15,
+    shadowColor: "#0d2b5c",
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.4,
     shadowRadius: 20,
     backgroundColor: 'white', 
   },
@@ -182,25 +160,24 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 30,
+    borderRadius: 35,
     overflow: 'hidden',
   },
   cardOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: 'rgba(0,0,0,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoImage: {
-    width: 120, 
-    height: 120,
+    width: width * 0.3, 
+    height: width * 0.3,
+    tintColor: 'white',
   },
-
-  // Dots
   dotsContainer: {
     flexDirection: 'row',
-    marginTop: 25,
-    marginBottom: 25,
+    marginTop: height * 0.03,
+    marginBottom: height * 0.02,
   },
   dot: {
     height: 8,
@@ -208,72 +185,77 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   dotActive: {
-    width: 25, // Sedikit lebih panjang saat aktif
+    width: 24,
     backgroundColor: '#164081',
   },
   dotInactive: {
     width: 8,
-    backgroundColor: '#D3D3D3',
+    backgroundColor: '#D1D5DB',
   },
-  
-  // Teks
   textContainer: {
     paddingHorizontal: 30,
     alignItems: 'center',
   },
   titleText: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: width * 0.06,
+    fontWeight: '800',
     textAlign: 'center',
     color: '#000',
-    lineHeight: 30,
+    lineHeight: width * 0.08,
   },
   highlightText: {
     color: '#164081',
   },
   divider: {
-    width: 120,
-    height: 2,
+    width: 80,
+    height: 3,
     backgroundColor: '#000',
-    marginTop: 10,
-    marginBottom: 15,
+    marginTop: 15,
+    marginBottom: 20,
+    borderRadius: 2,
   },
   descriptionText: {
     textAlign: 'center',
-    color: '#555',
-    fontSize: 14,
-    lineHeight: 20,
+    color: '#4B5563',
+    fontSize: width * 0.035,
+    lineHeight: width * 0.055,
+    paddingHorizontal: 10,
   },
-  
-  // Tombol
   buttonContainer: {
-    marginTop: 30,
+    marginTop: height * 0.04,
     width: '100%',
-    paddingHorizontal: 30,
+    paddingHorizontal: 40,
     alignItems: 'center',
   },
   signUpButton: {
     backgroundColor: '#164081',
     width: '100%',
-    paddingVertical: 15,
+    paddingVertical: 18,
     borderRadius: 30,
     alignItems: 'center',
-    marginBottom: 15,
-    elevation: 5,
+    marginBottom: 20,
+    shadowColor: "#164081",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   signUpText: {
     color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
   loginRow: {
     flexDirection: 'row',
   },
   loginText: {
-    color: '#555',
+    color: '#6B7280',
+    fontSize: 14,
   },
   signInLink: {
     color: '#3B95D5',
     fontWeight: 'bold',
+    fontSize: 14,
   },
 });

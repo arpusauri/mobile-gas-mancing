@@ -12,7 +12,9 @@ export default function TabLayout() {
     >
       {/* Urutan Tab sesuai Icon: Home, Cart, Booking, Profile */}
       <Tabs.Screen name="index" options={{ title: 'Home' }} />
+      <Tabs.Screen name="PesananSaya" options={{ title: 'Pesanan Saya' }} />
       <Tabs.Screen name="ensiklopedia" options={{ title: 'Ensiklopedia' }} />
+      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
       {/* Buat file dummy cart.tsx, booking.tsx, profile.tsx nanti agar error hilang */}
     </Tabs>
   );
