@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Image, 
   StyleSheet, 
-  Dimensions 
+  Dimensions,
+  ActivityIndicator
 } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
 
@@ -28,24 +29,33 @@ export default function HeaderCarousel({
         autoPlay={false}
         data={images}
         scrollAnimationDuration={500}
-        // TAMBAHAN PENTING 1: Biar swipe lancar di Android & iOS
-        panGestureHandlerProps={{
-          activeOffsetX: [-10, 10], // Mengutamakan geseran horizontal
-        }}
         enabled={true} 
-        renderItem={({ item }) => (
-          <Image 
-            source={{ uri: item }} 
-            style={styles.image}
-          />
-        )}
+        // 👇 PERBAIKAN 1: Panggil komponen CarouselImageItem (JANGAN Image langsung)
+        renderItem={({ item }) => <CarouselImageItem item={item} />}
       />
+    </View>
+  );
+}
+
+// 👇 PERBAIKAN 2: Komponen ini yang ngurusin loading + format link gambar
+function CarouselImageItem({ item }: { item: string }) {
+  const [loading, setLoading] = useState(true); 
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#f0f0f0' }}> 
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color="#102A63" />
+        </View>
+      )}
       
-      {/* TAMBAHAN PENTING 2: 
-         Overlay di sini dihapus saja, karena kita akan pakai gradient 
-         di halaman DetailEnsiklopedia biar warnanya lebih nyatu sama teks.
-         Kalau dobel overlay, nanti gambarnya jadi terlalu gelap.
-      */}
+      <Image 
+        // 👇 PERBAIKAN 3: Pakai { uri: item } karena ini Link Internet
+        source={{ uri: item }} 
+        style={styles.image}
+        onLoadStart={() => setLoading(true)}
+        onLoadEnd={() => setLoading(false)}
+      />
     </View>
   );
 }
@@ -54,7 +64,7 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     position: 'relative',
-    borderBottomLeftRadius: 35, // Lengkungan disamakan dengan desain
+    borderBottomLeftRadius: 35, 
     borderBottomRightRadius: 35,
     overflow: 'hidden', 
   },
@@ -62,5 +72,11 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  loadingContainer: {
+    ...StyleSheet.absoluteFillObject, 
+    justifyContent: 'center',        
+    alignItems: 'center',            
+    zIndex: 1,                       
   },
 });
