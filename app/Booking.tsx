@@ -13,9 +13,10 @@ import {
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import Carousel from 'react-native-reanimated-carousel';
 // 1. IMPORT PENTING BUAT SWIPE
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import HeaderCarousel from '../components/HeaderCarousel';
+import FooterBPC from '../components/FooterBPC';
 
 const width = Dimensions.get('window').width;
 
@@ -101,46 +102,28 @@ export default function BookingScreen() {
         
         {/* HEADER CAROUSEL */}
         <View style={styles.headerContainer}>
-            <Carousel
-                loop={true}
-                width={width}
-                height={375}
-                autoPlay={false} // Saya matikan autoplay biar enak ngetes swipe manualnya
-                data={headerImages}
-                scrollAnimationDuration={500} // Lebih cepat dikit biar responsif
-                // 3. AKTIFKAN GESTURE HANDLER
-                enabled={true} 
-                renderItem={({ item }) => (
-                    <Image 
-                        source={{ uri: item }} 
-                        style={styles.headerImage}
-                    />
-                )}
-            />
+            {/* 1. Pakai Komponen (Ini pengganti blok Carousel + Overlay lama) */}
+            <HeaderCarousel images={headerImages} />
             
-            {/* 4. TAMBAH pointerEvents="none" SUPAYA SENTUHAN TEMBUS KE BAWAH */}
-            <View style={styles.headerOverlay} pointerEvents="none" />
-            
+            {/* 2. Tombol Back & Judul (Tetap ada karena ini di luar Carousel) */}
             <View style={styles.headerTopBar}>
                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                  {/* 🔴 TODO: GANTI ICON BACK */}
                   <Ionicons name="arrow-back" size={24} color="black" />
                </TouchableOpacity>
                <Text style={styles.headerTitleText}>Booking</Text>
                <View style={{width: 40}} /> 
             </View>
             
+            {/* 3. Info Lokasi & Rating */}
             <View style={styles.headerInfo}>
                <View>
                  <Text style={styles.locationTitle}>Pantai Ancol</Text>
                  <View style={styles.locationRow}>
-                    {/* 🔴 TODO: GANTI ICON LOKASI */}
                     <Ionicons name="location-outline" size={16} color="white" />
                     <Text style={styles.locationSubtitle}> Ancol, Jakarta barat</Text>
                  </View>
                </View>
                <View style={styles.ratingBadge}>
-                  {/* 🔴 TODO: GANTI ICON BINTANG */}
                   <Ionicons name="star" size={14} color="#FFD700" />
                   <Text style={styles.ratingText}>4.2</Text>
                   <Text style={styles.ratingCount}>(300)</Text>
@@ -258,28 +241,21 @@ export default function BookingScreen() {
       </ScrollView>
 
       {/* FOOTER */}
-      <View style={styles.footerContainer}>
-         <View>
-            <Text style={styles.footerLabel}>Total Harga</Text>
-            <Text style={styles.footerPrice}>Rp. {totalPrice.toLocaleString('id-ID')}</Text>
-         </View>
-         <TouchableOpacity 
-            style={styles.checkoutButton}
-            onPress={() => {
-              router.push({
-                pathname: "/Payment",
-                params: {
-                  total: totalPrice,
-                  people: people,
-                  date: formatDate(date),
-                  equipment: JSON.stringify(equipment)
-                }
-              });
-            }}
-         >
-            <Text style={styles.checkoutText}>Lanjut ke Pembayaran</Text>
-         </TouchableOpacity>
-      </View>
+      <FooterBPC
+      totalPrice={totalPrice}
+      buttonLabel="Lanjut Ke Pembayaran"
+      onPress={() => {
+        router.push({
+          pathname: "/Payment",
+          params: {
+            total: totalPrice,
+            people: people,
+            date: formatDate(date),
+            equipment: JSON.stringify(equipment)
+          }
+        })
+      }}
+      />
 
     </GestureHandlerRootView>
   );
@@ -507,40 +483,5 @@ const styles = StyleSheet.create({
   },
   counterText: {
     fontWeight: 'bold',
-  },
-  // FOOTER
-  footerContainer: {
-    position: 'absolute',
-    bottom: -2,
-    left: 0,
-    right: 0,
-    backgroundColor: '#102A63',
-    padding: 20,
-    paddingBottom: 27,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  footerLabel: {
-    color: 'white',
-    fontSize: 12,
-  },
-  footerPrice: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  checkoutButton: {
-    backgroundColor: 'white',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-  },
-  checkoutText: {
-    color: '#102A63',
-    fontWeight: 'bold',
-    fontSize: 14,
   },
 });

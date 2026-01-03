@@ -15,6 +15,7 @@ import {
   useLocalSearchParams 
 } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import FooterBPC from '../components/FooterBPC';
 
 export default function PaymentScreen() {
   const router = useRouter();
@@ -232,33 +233,25 @@ export default function PaymentScreen() {
         </View>
       </ScrollView>
 
-      {/* --- FOOTER (IDENTIK DENGAN BOOKING) --- */}
-      <View style={styles.footerContainer}>
-         <TouchableOpacity 
-            disabled={!paymentLabel}
-            style={[
-              styles.fullWidthButton,
-              !paymentLabel && { opacity: 0.6 }
-            ]}
-            onPress={() => {
-              router.push({
-                pathname: "/Confirmation",
-                params: {
-                    total: totalHarga,
-                    equipment: params.equipment,
-                    people: params.people,
-                    date: params.date
-                }
-              });
-            }}
-         >
-            <Text style={styles.fullWidthButtonText}>
-              {paymentLabel 
-                ? `Bayar Dengan ${paymentLabel}` 
-                : "Pilih Metode Pembayaran"}
-            </Text>
-         </TouchableOpacity>
-      </View>
+      {/* --- FOOTER --- */}
+      <FooterBPC
+      // Logika teks tombol
+      buttonLabel={paymentLabel ? `Bayar Dengan ${paymentLabel}` : "Pilih Metode Pembayaran"}
+      // Logika tombol mati kalau belum pilih bank
+      disabled={!paymentLabel}
+      // Logika Navigasi
+        onPress={() => {
+          router.push({
+            pathname: "/Confirmation",
+            params: {
+                total: totalHarga,
+                equipment: params.equipment,
+                people: params.people,
+                date: params.date
+            }
+          });
+        }}
+      />
 
     </SafeAreaView>
   );
@@ -420,31 +413,5 @@ const styles = StyleSheet.create({
     height: 12, 
     borderRadius: 6, 
     backgroundColor: '#102A63' 
-  },
-  // --------------------------------
-  footerContainer: {
-    position: 'absolute',
-    bottom: -2,
-    left: 0,
-    right: 0,
-    backgroundColor: '#102A63',
-    padding: 20,
-    paddingBottom: 27,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fullWidthButton: {
-    backgroundColor: 'white',
-    width: '100%',
-    paddingVertical: 12,
-    borderRadius: 25,
-    alignItems: 'center',
-  },
-  fullWidthButtonText: {
-    color: '#102A63',
-    fontWeight: 'bold',
-    fontSize: 14,
   },
 });
