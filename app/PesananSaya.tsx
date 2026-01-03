@@ -6,27 +6,24 @@ import {
   ScrollView, 
   Image, 
   TouchableOpacity, 
-  SafeAreaView,
-  StatusBar,
-  Platform,
-  Alert
+  Alert 
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import CustomHeader from '../components/CustomHeader';
+import CustomHeader from '../components/CustomHeader'; 
 
-// --- TIPE DATA STATUS (Biar rapi) ---
+// Definisi tipe status agar kodingan lebih aman (Type Safety)
 type StatusPesanan = 'Lunas' | 'Menunggu' | 'Dibatalkan';
 
-// --- DATA DUMMY (Nanti ini diganti sama data dari API Temen Abang) ---
+// Data simulasi (Dummy). Nanti ini akan digantikan oleh data asli dari Database teman Abang
 const INITIAL_DATA = [
   {
     id: 'B-928121',
     title: 'Pantai Ancol',
-    location: 'Ancol, Jakarta Barat',
+    location: 'Ancol, Tanjung Priok, Jakarta Utara, DKI Jakarta',
     date: '03 Jan 2026',
-    price: 50000,
-    status: 'Lunas' as StatusPesanan, // Hijau
+    price: 150000, 
+    status: 'Menunggu' as StatusPesanan, 
     image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=2070&auto=format&fit=crop'
   },
   {
@@ -35,7 +32,7 @@ const INITIAL_DATA = [
     location: 'Sumatera Utara',
     date: '05 Jan 2026',
     price: 150000,
-    status: 'Menunggu' as StatusPesanan, // Kuning
+    status: 'Lunas' as StatusPesanan,
     image: 'https://images.unsplash.com/photo-1544552866-d3ed42536cfd?q=80&w=2071&auto=format&fit=crop'
   },
   {
@@ -44,26 +41,27 @@ const INITIAL_DATA = [
     location: 'Bogor, Jawa Barat',
     date: '01 Jan 2026',
     price: 75000,
-    status: 'Dibatalkan' as StatusPesanan, // Merah
+    status: 'Dibatalkan' as StatusPesanan,
     image: 'https://images.unsplash.com/photo-1519046904884-53103b34b206?q=80&w=2070&auto=format&fit=crop'
   }
 ];
 
 export default function PesananSayaScreen() {
   const router = useRouter();
+  // State untuk menyimpan daftar pesanan yang bisa berubah (misal: saat dibatalkan)
   const [orders, setOrders] = useState(INITIAL_DATA);
 
-  // LOGIC WARNA BADGE STATUS
+  // Fungsi untuk menentukan warna badge berdasarkan status pesanan
   const getStatusColor = (status: StatusPesanan) => {
     switch (status) {
-      case 'Lunas': return '#4ADE80';      // Hijau Terang
-      case 'Menunggu': return '#FACC15';   // Kuning
+      case 'Lunas': return '#4ADE80';      // Hijau
+      case 'Menunggu': return '#FACC15';   // Kuning (Menunggu Pembayaran)
       case 'Dibatalkan': return '#EF4444'; // Merah
       default: return '#9CA3AF';
     }
   };
 
-  // LOGIC BUTTON BATAL
+  // Fungsi untuk menangani aksi pembatalan pesanan
   const handleCancel = (id: string) => {
     Alert.alert(
       "Batalkan Pesanan?",
@@ -74,11 +72,14 @@ export default function PesananSayaScreen() {
           text: "Ya, Batalkan", 
           style: 'destructive',
           onPress: () => {
-            // Update status jadi 'Dibatalkan' secara lokal
-            const updatedOrders = orders.map(order => 
-              order.id === id ? { ...order, status: 'Dibatalkan' as StatusPesanan } : order
-            );
-            setOrders(updatedOrders);
+            // Update state secara lokal: Mencari ID yang cocok dan mengubah statusnya
+            setOrders((prevOrders) => {
+              const newArr = prevOrders.map(order => 
+                order.id === id ? { ...order, status: 'Dibatalkan' as StatusPesanan } : order
+              );
+              // Return array baru agar React mendeteksi perubahan dan me-render ulang UI
+              return [...newArr]; 
+            });
           }
         }
       ]
@@ -86,30 +87,33 @@ export default function PesananSayaScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* HEADER */}
+    <View style={styles.mainContainer}>
+      {/* Header Custom: Menampilkan judul dan ikon keranjang sesuai desain UI */}
       <CustomHeader title="Pesanan Saya" showCart={true} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {orders.map((item) => (
           <View key={item.id} style={styles.card}>
-            
-            {/* BACKGROUND IMAGE DENGAN OVERLAY */}
+            {/* 1. Lapisan Gambar Latar Belakang */}
             <Image source={{ uri: item.image }} style={styles.cardImage} />
+            
+            {/* 2. Lapisan Overlay Gelap (Agar teks putih mudah dibaca) */}
             <View style={styles.imageOverlay} />
 
-            {/* CONTENT KARTU */}
+            {/* 3. Lapisan Konten Utama (Berada di atas Overlay) */}
             <View style={styles.cardInner}>
               
-              {/* BARIS ATAS: NO PESANAN & STATUS */}
+              {/* Baris Atas: ID Pesanan & Badge Status */}
               <View style={styles.topRow}>
                 <Text style={styles.orderIdText}>No. Pesanan : {item.id}</Text>
                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-                  <Text style={styles.statusText}>{item.status === 'Menunggu' ? 'Pending' : item.status}</Text>
+                  <Text style={styles.statusText}>
+                    {item.status === 'Menunggu' ? 'Menunggu Pembayaran' : item.status}
+                  </Text>
                 </View>
               </View>
 
-              {/* BARIS TENGAH: JUDUL & LOKASI */}
+              {/* Baris Tengah: Judul Lokasi & Info Tambahan */}
               <View style={styles.middleRow}>
                 <Text style={styles.titleText}>{item.title}</Text>
                 <View style={styles.locationRow}>
@@ -118,7 +122,7 @@ export default function PesananSayaScreen() {
                 </View>
               </View>
 
-              {/* BARIS BAWAH: HARGA & TOMBOL */}
+              {/* Baris Bawah: Info Harga & Tombol Aksi */}
               <View style={styles.bottomRow}>
                 <View style={styles.priceBadge}>
                   <Text style={styles.priceText}>
@@ -127,18 +131,25 @@ export default function PesananSayaScreen() {
                 </View>
 
                 <View style={styles.buttonGroup}>
-                  {/* TOMBOL LIHAT DETAIL */}
+                  {/* Navigasi ke Halaman Detail dengan membawa ID Pesanan */}
                   <TouchableOpacity 
                     style={styles.btnDetail}
                     onPress={() => router.push({
-                      pathname: '/DetailPesananSaya',
-                      params: { orderId: item.id }
+                        pathname: '/DetailPesananSaya',
+                        params: { 
+                            orderId: item.id,
+                            title: item.title,
+                            location: item.location,
+                            price: item.price,
+                            status: item.status,
+                            image: item.image
+                        }
                     })}
                   >
                     <Text style={styles.btnText}>Lihat Detail</Text>
                   </TouchableOpacity>
 
-                  {/* TOMBOL BATAL (Hanya muncul jika belum batal) */}
+                  {/* Tombol Batal: Hanya muncul jika pesanan belum dibatalkan */}
                   {item.status !== 'Dibatalkan' && (
                     <TouchableOpacity 
                       style={styles.btnBatal}
@@ -153,6 +164,7 @@ export default function PesananSayaScreen() {
             </View>
           </View>
         ))}
+        {/* Spacer bawah agar kartu terakhir tidak tertutup navigasi bawah */}
         <View style={{height: 100}} /> 
       </ScrollView>
     </View>
@@ -160,36 +172,13 @@ export default function PesananSayaScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
     backgroundColor: '#F1F5F9',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-  },
-  header: {
-    paddingVertical: 20,       // Ganti padding jadi vertikal aja
-    paddingHorizontal: 20,     // Kiri kanan tetep
-    backgroundColor: '#fff',
-    elevation: 2,
-    flexDirection: 'row',      // Biar sejajar horizontal
-    alignItems: 'center',      // Tengah vertikal
-    justifyContent: 'center',  // Tengah horizontal (buat judul)
-    marginBottom: 10,
-    position: 'relative',      // Penting buat tombol back absolute
-  },
-  headerBackButton: {
-    position: 'absolute',      // Nempel di pojok kiri
-    left: 20,
-    zIndex: 10,                // Biar bisa dipencet (di atas layer lain)
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
   },
   scrollContent: {
     padding: 16,
   },
-  // CARD STYLES
   card: {
     height: 200,
     width: '100%',
@@ -198,9 +187,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
     elevation: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
     backgroundColor: 'white'
   },
   cardImage: {
@@ -211,14 +197,15 @@ const styles = StyleSheet.create({
   },
   imageOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)', // Gelap dikit biar tulisan putih kebaca
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    zIndex: 1, // Berada di atas gambar, di bawah teks
   },
   cardInner: {
     flex: 1,
     padding: 16,
     justifyContent: 'space-between',
+    zIndex: 2, // Memastikan teks dan tombol berada di lapisan teratas agar bisa diklik
   },
-  // TOP ROW
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -235,11 +222,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusText: {
-    color: '#000', // Teks hitam di atas badge warna cerah
+    color: '#000',
     fontSize: 12,
     fontWeight: 'bold',
   },
-  // MIDDLE ROW
   middleRow: {
     justifyContent: 'center',
   },
@@ -247,8 +233,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 22,
     fontWeight: 'bold',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowRadius: 5,
   },
   locationRow: {
     flexDirection: 'row',
@@ -259,11 +243,10 @@ const styles = StyleSheet.create({
     color: '#F1F5F9',
     fontSize: 12,
   },
-  // BOTTOM ROW
   bottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end', // Biar tombol sejajar bawah
+    alignItems: 'flex-end',
   },
   priceBadge: {
     backgroundColor: 'rgba(255,255,255,0.9)',
@@ -281,13 +264,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   btnDetail: {
-    backgroundColor: '#102A63', // Biru Navy
+    backgroundColor: '#102A63',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
   },
   btnBatal: {
-    backgroundColor: '#DC2626', // Merah
+    backgroundColor: '#DC2626',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
