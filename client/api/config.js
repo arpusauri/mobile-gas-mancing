@@ -31,11 +31,11 @@ export const apiCall = async (endpoint, options = {}) => {
     const result = await response.json();
     console.log("Raw response:", result);
 
-    if (!response.ok) {
-      // Get error message from server response
+    if (!response.ok || result.success === false) {
+      // Tambahkan cek result.success
       const errorMessage =
-        result.message || result.error || `API error: ${response.status}`;
-      console.error("❌ API error:", errorMessage);
+        result.message || result.error || "Terjadi kesalahan";
+      console.error("❌ API Error Details:", result);
       throw new Error(errorMessage);
     }
 

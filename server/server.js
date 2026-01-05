@@ -38,7 +38,7 @@ const paymentConfirmationRoutes = require("./src/routes/paymentConfirmationRoute
 const mitraRoutes = require("./src/routes/mitraRoutes"); 
 
 // ======== MOUNT ROUTES ========
-app.use("/api/", authRoutes);
+// app.use("/api/", authRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/places", placeRoutes);
 app.use("/api/ensiklopedia", ensiklopediaRoutes);

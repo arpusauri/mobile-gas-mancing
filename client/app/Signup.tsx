@@ -69,19 +69,21 @@ export default function SignUpScreen() {
   };
 
   const handleSignUp = async () => {
-    // Validation
+    console.log("DEBUG: States:", { email, username, phone, password });
+
+    // 1. Validasi Input
     if (!email || !username || !phone || !password) {
-      Alert.alert("Error", "Semua field harus diisi!");
+      setError("Semua field harus diisi!");
       return;
     }
 
     if (email.indexOf("@") === -1) {
-      Alert.alert("Error", "Email tidak valid!");
+      setError("Email tidak valid!");
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert("Error", "Password minimal 6 karakter!");
+      setError("Password minimal 6 karakter!");
       return;
     }
 
@@ -89,29 +91,56 @@ export default function SignUpScreen() {
       setLoading(true);
       setError("");
 
-      // Call API
-      const response = await api.auth.signup({
+      const payload = {
         nama_lengkap: username,
-        email,
-        password,
+        email: email,
+        password: password,
         no_telepon: phone,
-      });
+      };
 
-      console.log("Signup response:", response);
+      console.log("📡 Mengirim data ke server...");
+      const response = await api.auth.signup(payload);
+      console.log("✅ Signup berhasil:", response);
 
-      // Success - redirect to Sign In
-      Alert.alert("Berhasil", "Akun berhasil dibuat! Silakan login.", [
-        {
-          text: "OK",
-          onPress: () => router.replace("/Signin"), // ← Change this
-        },
-      ]);
+      // Fungsi untuk membersihkan form dan pindah halaman
+      const finalizeSignup = () => {
+        setEmail("");
+        setUsername("");
+        setPhone("");
+        setPassword("");
+        router.replace("/Signin");
+      };
+
+      // 2. Penanganan Notifikasi & Navigasi Berdasarkan Platform
+      if (Platform.OS === "web") {
+        // Di Web, gunakan browser alert agar pasti muncul
+        alert("Pendaftaran Berhasil! Akun Anda telah terdaftar.");
+        finalizeSignup();
+      } else {
+        // Di Mobile (Android/iOS), gunakan Alert Native yang rapi
+        Alert.alert(
+          "Pendaftaran Berhasil",
+          "Akun Anda telah terdaftar. Silakan masuk untuk melanjutkan.",
+          [
+            {
+              text: "Login Sekarang",
+              onPress: finalizeSignup,
+            },
+          ],
+          { cancelable: false }
+        );
+      }
     } catch (err) {
-      console.error("Signup error:", err);
-
+      console.error("Signup error detail:", err);
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
-      Alert.alert("Error", errorMessage);
+
+      // Jika error bukan karena validasi (misal network error), tampilkan alert error
+      if (Platform.OS === "web") {
+        alert("Error: " + errorMessage);
+      } else {
+        Alert.alert("Gagal", errorMessage);
+      }
     } finally {
       setLoading(false);
     }
