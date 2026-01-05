@@ -10,16 +10,18 @@ import {
   Platform,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import BackgroundLayout from "../components/BackgroundLayout";
+import { api } from "../api/config";
 
 const { width, height } = Dimensions.get("window");
 
-// Responsive sizes
 const isSmallScreen = height < 700;
 const padding = isSmallScreen ? 15 : 25;
 const paddingTop = isSmallScreen ? 20 : 40;
@@ -29,6 +31,8 @@ const InputField = ({
   placeholder,
   isPassword = false,
   iconColor,
+  value,
+  onChangeText,
 }: any) => (
   <View style={styles.inputContainer}>
     <View style={styles.iconWrapper}>
@@ -39,6 +43,8 @@ const InputField = ({
       placeholder={placeholder}
       placeholderTextColor="#aaa"
       secureTextEntry={isPassword}
+      value={value}
+      onChangeText={onChangeText}
     />
   </View>
 );
@@ -49,6 +55,67 @@ export default function SignUpScreen() {
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const getErrorMessage = (err: unknown): string => {
+    if (err instanceof Error) {
+      return err.message;
+    }
+    if (typeof err === "string") {
+      return err;
+    }
+    return "Gagal membuat akun";
+  };
+
+  const handleSignUp = async () => {
+    // Validation
+    if (!email || !username || !phone || !password) {
+      Alert.alert("Error", "Semua field harus diisi!");
+      return;
+    }
+
+    if (email.indexOf("@") === -1) {
+      Alert.alert("Error", "Email tidak valid!");
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert("Error", "Password minimal 6 karakter!");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      // Call API
+      const response = await api.auth.signup({
+        nama_lengkap: username,
+        email,
+        password,
+        no_telepon: phone,
+      });
+
+      console.log("Signup response:", response);
+
+      // Success - redirect to Sign In
+      Alert.alert("Berhasil", "Akun berhasil dibuat! Silakan login.", [
+        {
+          text: "OK",
+          onPress: () => router.replace("/Signin"), // ← Change this
+        },
+      ]);
+    } catch (err) {
+      console.error("Signup error:", err);
+
+      const errorMessage = getErrorMessage(err);
+      setError(errorMessage);
+      Alert.alert("Error", errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <BackgroundLayout>
@@ -77,6 +144,14 @@ export default function SignUpScreen() {
           {/* PAGE TITLE */}
           <Text style={styles.pageTitle}>Sign Up</Text>
 
+          {/* ERROR MESSAGE */}
+          {error ? (
+            <View style={styles.errorBox}>
+              <Ionicons name="alert-circle" size={20} color="#FF6B6B" />
+              <Text style={styles.errorMessage}>{error}</Text>
+            </View>
+          ) : null}
+
           {/* FORM CARD DENGAN GRADIENT */}
           <LinearGradient
             colors={["#2A5CA8", "#06162e"]}
@@ -89,6 +164,8 @@ export default function SignUpScreen() {
               icon="mail"
               placeholder="Enter your email"
               iconColor="#000000"
+              value={email}
+              onChangeText={setEmail}
             />
 
             {/* 2. Username */}
@@ -96,6 +173,8 @@ export default function SignUpScreen() {
               icon="person"
               placeholder="Enter your username"
               iconColor="#000000"
+              value={username}
+              onChangeText={setUsername}
             />
 
             {/* 3. Phone */}
@@ -103,6 +182,8 @@ export default function SignUpScreen() {
               icon="call"
               placeholder="Enter your phone"
               iconColor="#000000"
+              value={phone}
+              onChangeText={setPhone}
             />
 
             {/* 4. Password */}
@@ -111,16 +192,34 @@ export default function SignUpScreen() {
               placeholder="Enter your password"
               isPassword={true}
               iconColor="#000000"
+              value={password}
+              onChangeText={setPassword}
             />
 
             {/* SUBMIT BUTTON */}
             <TouchableOpacity
-              style={styles.submitButton}
-              onPress={() => router.replace("/(tabs)")}
+              style={[
+                styles.submitButton,
+                loading && styles.submitButtonDisabled,
+              ]}
+              onPress={handleSignUp}
+              disabled={loading}
               activeOpacity={0.8}
             >
-              <Text style={styles.submitButtonText}>Submit</Text>
+              {loading ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={styles.submitButtonText}>Submit</Text>
+              )}
             </TouchableOpacity>
+
+            {/* Sign In Link */}
+            <View style={styles.signInRow}>
+              <Text style={styles.signInText}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => router.push("/Signin")}>
+                <Text style={styles.signInLink}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
           </LinearGradient>
 
           <View style={{ height: 30 }} />
@@ -162,6 +261,25 @@ const styles = StyleSheet.create({
     color: "black",
     textAlign: "center",
     marginBottom: 25,
+  },
+
+  // ERROR BOX
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFE5E5",
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: "#FF6B6B",
+  },
+  errorMessage: {
+    marginLeft: 10,
+    color: "#FF6B6B",
+    fontSize: 13,
+    fontWeight: "500",
+    flex: 1,
   },
 
   // CARD (Gradient Style)
@@ -214,10 +332,29 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 5,
   },
+  submitButtonDisabled: {
+    opacity: 0.6,
+  },
   submitButtonText: {
     color: "white",
     fontSize: 15,
     fontWeight: "bold",
     letterSpacing: 0.5,
+  },
+
+  // SIGN IN LINK
+  signInRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 15,
+  },
+  signInText: {
+    color: "white",
+    fontSize: 12,
+  },
+  signInLink: {
+    color: "#6495ED",
+    fontWeight: "bold",
+    fontSize: 12,
   },
 });
