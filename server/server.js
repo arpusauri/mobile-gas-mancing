@@ -1,23 +1,13 @@
+// server/server.js
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
+const path = require("path"); 
 
 const app = express();
 
-// CORS Configuration
-app.use(
-  cors({
-    origin: [
-      "http://localhost:3000", // Web app
-      "http://localhost:8081", // Web app on 8081
-      "http://192.168.1.100:8081", // Physical device
-      "http://10.0.2.2:8081", // Android emulator
-    ],
-    credentials: true,
-  })
-);
-
+// Middleware
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -26,12 +16,13 @@ app.use(express.urlencoded({ extended: true }));
 // ==================================================
 // Karena file ini ada di root (sejajar dengan folder uploads),
 // kita arahkan langsung ke 'uploads'
-const uploadsDir = path.join(__dirname, "uploads");
+const uploadsDir = path.join(__dirname, 'uploads');
 
 console.log("SYSTEM LOG: Folder Uploads dibuka di ->", uploadsDir);
 
-app.use("/uploads", express.static(uploadsDir));
+app.use('/uploads', express.static(uploadsDir));
 // ==================================================
+
 
 // Import Routes
 const authRoutes = require("./src/routes/auth");
@@ -44,7 +35,7 @@ const pesananRoutes = require("./src/routes/pesananRoutes");
 const reviewRoutes = require("./src/routes/reviewRoutes");
 const paymentRoutes = require("./src/routes/paymentRoutes");
 const paymentConfirmationRoutes = require("./src/routes/paymentConfirmationRoutes");
-const mitraRoutes = require("./src/routes/mitraRoutes");
+const mitraRoutes = require("./src/routes/mitraRoutes"); 
 
 // ======== MOUNT ROUTES ========
 app.use("/api/", authRoutes);
@@ -61,6 +52,5 @@ app.use("/api/paymentConfirmation", paymentConfirmationRoutes);
 app.use("/api/mitra", mitraRoutes);
 
 // ======== START SERVER ========
-const PORT = process.env.PORT || 8081; // Change to 8081
-
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
