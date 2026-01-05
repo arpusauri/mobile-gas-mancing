@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
@@ -8,21 +8,30 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Dimensions
-} from 'react-native';
-import { Stack } from 'expo-router'; 
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient'; 
+  Dimensions,
+} from "react-native";
+import { Stack } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { api } from "../../api/config";
+import BackgroundLayout from "../../components/BackgroundLayout";
 
-import BackgroundLayout from '../../components/BackgroundLayout'; 
+const { width } = Dimensions.get("window");
 
-const { width } = Dimensions.get('window');
-
-// Komponen Input Field (sama seperti di Sign In agar konsisten)
-const InputField = ({ icon, placeholder, isPassword = false, iconColor, keyboardType = 'default' }: any) => (
+// Komponen Input Field
+const InputField = ({
+  icon,
+  placeholder,
+  isPassword = false,
+  iconColor,
+  keyboardType = "default",
+  value,
+  onChangeText,
+}: any) => (
   <View style={styles.inputContainer}>
     <View style={styles.iconWrapper}>
-       <Ionicons name={icon} size={24} color={iconColor} />
+      <Ionicons name={icon} size={24} color={iconColor} />
     </View>
     <TextInput
       style={styles.input}
@@ -30,149 +39,217 @@ const InputField = ({ icon, placeholder, isPassword = false, iconColor, keyboard
       placeholderTextColor="#aaa"
       secureTextEntry={isPassword}
       keyboardType={keyboardType}
+      value={value}
+      onChangeText={onChangeText}
     />
   </View>
 );
 
 export default function UserProfileScreen() {
+  // STATE harus di dalam komponen
+  const [email, setEmail] = React.useState("");
+  const [username, setUsername] = React.useState("");
+  const [phone, setPhone] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [loading, setLoading] = React.useState(true);
+  const [userId, setUserId] = React.useState("");
+
+  // LOAD PROFILE
+  React.useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        if (!token) return;
+
+        const response = await api.auth.getProfile(token);
+        console.log("Raw response:", response); // <-- sudah benar
+
+        // Ambil user object
+        const user = response.user;
+
+        // SET STATE dari user
+        setUserId(user.id_pengguna);
+        setEmail(user.email || "");
+        setUsername(user.nama_lengkap || "");
+        setPhone(user.no_telepon || "");
+      } catch (err) {
+        console.error("Failed to load user profile", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, []);
+
+  // HANDLE SUBMIT
+  const handleSubmit = async () => {
+    try {
+      const payload: any = {
+        nama_lengkap: username,
+        email,
+        no_telepon: phone,
+      };
+      if (password.trim() !== "") payload.password_hash = password;
+
+      await api.users.update(userId, payload);
+      alert("Profile updated!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update profile");
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>Loading profile...</Text>
+      </View>
+    );
+  }
+
   return (
     <BackgroundLayout>
-      {/* Hilangkan Header bawaan agar tampilan bersih & full screen */}
       <Stack.Screen options={{ headerShown: false }} />
-
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent} 
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-
           {/* HEADER HALAMAN */}
           <View style={styles.header}>
-            <Ionicons name="person" size={32} color="black" style={{ marginRight: 10 }} />
+            <Ionicons
+              name="person"
+              size={32}
+              color="black"
+              style={{ marginRight: 10 }}
+            />
             <Text style={styles.pageTitle}>Profile</Text>
           </View>
 
-          {/* FORM CARD (GRADIENT) */}
+          {/* FORM CARD */}
           <LinearGradient
-            colors={['#2A5CA8', '#06162e']} 
+            colors={["#2A5CA8", "#06162e"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.formCard}
           >
-            {/* 1. Email */}
             <InputField
-              icon="mail" 
+              icon="mail"
               placeholder="Enter your email"
-              iconColor="#000000" 
+              iconColor="#000000"
               keyboardType="email-address"
+              value={email}
+              onChangeText={setEmail}
             />
 
-            {/* 2. Username */}
             <InputField
-              icon="person" 
+              icon="person"
               placeholder="Enter your username"
-              iconColor="#000000" 
+              iconColor="#000000"
+              value={username}
+              onChangeText={setUsername}
             />
 
-            {/* 3. Phone Number */}
             <InputField
-              icon="call" 
+              icon="call"
               placeholder="Enter your phone"
-              iconColor="#000000" 
+              iconColor="#000000"
               keyboardType="phone-pad"
+              value={phone}
+              onChangeText={setPhone}
             />
 
-            {/* 4. Password */}
             <InputField
-              icon="lock-closed" 
+              icon="lock-closed"
               placeholder="Enter your password"
               isPassword={true}
-              iconColor="#000000" 
+              iconColor="#000000"
+              value={password}
+              onChangeText={setPassword}
             />
 
             {/* SUBMIT BUTTON */}
-            <TouchableOpacity style={styles.submitButton} onPress={() => alert('Profile Updated!')}>
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={handleSubmit}
+            >
               <Text style={styles.submitButtonText}>Submit</Text>
             </TouchableOpacity>
-
           </LinearGradient>
 
-          {/* Spacer Bawah agar tidak tertutup Tab Bar */}
+          {/* Spacer Bawah */}
           <View style={{ height: 100 }} />
-
         </ScrollView>
       </KeyboardAvoidingView>
     </BackgroundLayout>
   );
 }
 
+// STYLES
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center', // Konten di tengah vertikal
+    justifyContent: "center",
     paddingHorizontal: 25,
-    paddingTop: 40, 
+    paddingTop: 40,
   },
-  
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 30,
-    marginTop: 20, // Sedikit jarak dari atas layar
+    marginTop: 20,
   },
   pageTitle: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: 'black',
+    fontWeight: "bold",
+    color: "black",
   },
-
   formCard: {
     borderRadius: 30,
     paddingVertical: 40,
     paddingHorizontal: 25,
-    width: '100%',
+    width: "100%",
     elevation: 20,
-    shadowColor: '#051226',
+    shadowColor: "#051226",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.5,
     shadowRadius: 15,
   },
-
   inputContainer: {
-    backgroundColor: 'white',
-    borderRadius: 30, 
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: "white",
+    borderRadius: 30,
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 15,
-    paddingVertical: 4, 
-    marginBottom: 20, // Jarak antar input
+    paddingVertical: 4,
+    marginBottom: 20,
     height: 50,
   },
   iconWrapper: {
     width: 35,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 5,
   },
   input: {
     flex: 1,
     fontSize: 14,
-    color: '#333',
-    height: '100%',
+    color: "#333",
+    height: "100%",
   },
-
   submitButton: {
-    backgroundColor: '#6495ED', 
+    backgroundColor: "#6495ED",
     borderRadius: 30,
     paddingVertical: 14,
     marginTop: 20,
-    alignItems: 'center',
-    width: '60%', 
-    alignSelf: 'center', 
+    alignItems: "center",
+    width: "60%",
+    alignSelf: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -180,9 +257,9 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   submitButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     letterSpacing: 0.5,
   },
 });

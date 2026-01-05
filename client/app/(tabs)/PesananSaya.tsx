@@ -97,32 +97,46 @@ export default function PesananSayaScreen() {
 
   /* ================= CANCEL PESANAN ================= */
   const handleCancel = async (id: string) => {
-    Alert.alert(
-      "Batalkan Pesanan?",
-      "Apakah Anda yakin ingin membatalkan pesanan ini?",
-      [
-        { text: "Tidak", style: "cancel" },
-        {
-          text: "Ya, Batalkan",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const token = await AsyncStorage.getItem("token");
-              if (!token) return;
+    let confirmCancel = false;
 
-              await api.booking.cancel(id, token);
-              fetchPesanan();
-            } catch (error: any) {
-              Alert.alert(
-                "Error",
-                error.message || "Gagal membatalkan pesanan"
-              );
-            }
-          },
-        },
-      ]
-    );
+    if (Platform.OS === "web") {
+      // Web: gunakan window.confirm
+      confirmCancel = window.confirm(
+        "Apakah Anda yakin ingin membatalkan pesanan ini?"
+      );
+    } else {
+      // Android/iOS: gunakan Alert.alert
+      confirmCancel = await new Promise((resolve) => {
+        Alert.alert(
+          "Batalkan Pesanan?",
+          "Apakah Anda yakin ingin membatalkan pesanan ini?",
+          [
+            { text: "Tidak", style: "cancel", onPress: () => resolve(false) },
+            {
+              text: "Ya, Batalkan",
+              style: "destructive",
+              onPress: () => resolve(true),
+            },
+          ]
+        );
+      });
+    }
+
+    if (!confirmCancel) return;
+
+    // Panggil API cancel
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) return;
+
+      await api.booking.cancel(id, token);
+      fetchPesanan();
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Gagal membatalkan pesanan");
+    }
   };
+
+
 
   /* ================= LOADING ================= */
   if (loading) {
@@ -194,14 +208,15 @@ export default function PesananSayaScreen() {
                       <Text style={styles.btnText}>Lihat Detail</Text>
                     </TouchableOpacity>
 
-                    {item.status !== "Dibatalkan" && (
-                      <TouchableOpacity
-                        style={styles.btnBatal}
-                        onPress={() => handleCancel(item.id)}
-                      >
-                        <Text style={styles.btnText}>Batal</Text>
-                      </TouchableOpacity>
-                    )}
+                    {item.status !== "Dibatalkan" &&
+                      item.status !== "Lunas" && (
+                        <TouchableOpacity
+                          style={styles.btnBatal}
+                          onPress={() => handleCancel(item.id)}
+                        >
+                          <Text style={styles.btnText}>Batal</Text>
+                        </TouchableOpacity>
+                      )}
                   </View>
                 </View>
               </View>
