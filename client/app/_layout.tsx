@@ -27,6 +27,10 @@ export default function RootLayout() {
         {/* Main Tabs */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
+        {/* Search & Detail Screens */}
+        <Stack.Screen name="Search" options={{ headerShown: false }} />
+        <Stack.Screen name="Detail" options={{ headerShown: false }} />
+
         {/* Detail Screens */}
         <Stack.Screen
           name="DetailEnsiklopedia"

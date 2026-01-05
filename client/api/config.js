@@ -49,60 +49,75 @@ export const apiCall = async (endpoint, options = {}) => {
 
 export const api = {
   ensiklopedia: {
-    getAll: () => apiCall('/api/ensiklopedia'),
+    getAll: () => apiCall("/api/ensiklopedia"),
     getById: (id) => apiCall(`/api/ensiklopedia/${id}`),
   },
   places: {
-    getAll: () => apiCall('/api/places'),
+    getAll: () => apiCall("/api/places"),
     getById: (id) => apiCall(`/api/places/${id}`),
+    search: (location, price, facilities) => {
+      // Build query string
+      const params = new URLSearchParams();
+      if (location) params.append("location", location);
+      if (price) params.append("price", price);
+      if (facilities) params.append("facilities", facilities);
+
+      return apiCall(`/api/places/search?${params.toString()}`);
+    },
   },
   itemSewa: {
-    getAll: () => apiCall('/api/item_sewa'),
+    getAll: () => apiCall("/api/item_sewa"),
     getById: (id) => apiCall(`/api/item_sewa/${id}`),
   },
   booking: {
-    getAll: () => apiCall('/api/booking'),
-    create: (data) => apiCall('/api/booking', { 
-      method: 'POST', 
-      body: JSON.stringify(data) 
-    }),
+    getAll: () => apiCall("/api/booking"),
+    create: (data) =>
+      apiCall("/api/booking", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
     getById: (id) => apiCall(`/api/booking/${id}`),
   },
   pesanan: {
-    getAll: () => apiCall('/api/pesanan'),
+    getAll: () => apiCall("/api/pesanan"),
     getById: (id) => apiCall(`/api/pesanan/${id}`),
   },
   users: {
-    getAll: () => apiCall('/api/users'),
+    getAll: () => apiCall("/api/users"),
     getById: (id) => apiCall(`/api/users/${id}`),
-    update: (id, data) => apiCall(`/api/users/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data)
-    }),
+    update: (id, data) =>
+      apiCall(`/api/users/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
   },
   auth: {
-    login: (data) => apiCall('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    }),
-    signup: (data) => apiCall('/api/auth/signup', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    }),
-    logout: () => apiCall('/api/auth/logout', { method: 'POST' }),
+    login: (data) =>
+      apiCall("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    signup: (data) =>
+      apiCall("/api/auth/signup", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    logout: () => apiCall("/api/auth/logout", { method: "POST" }),
   },
   review: {
-    getAll: () => apiCall('/api/review'),
-    create: (data) => apiCall('/api/review', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    }),
+    getAll: () => apiCall("/api/review"),
+    create: (data) =>
+      apiCall("/api/review", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
   },
   payment: {
-    getAll: () => apiCall('/api/payment'),
-    create: (data) => apiCall('/api/payment', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    }),
+    getAll: () => apiCall("/api/payment"),
+    create: (data) =>
+      apiCall("/api/payment", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
   },
 };
