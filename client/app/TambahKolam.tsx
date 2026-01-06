@@ -74,14 +74,85 @@ export default function TambahKolam() {
     setFacilities(facilities.includes(f) ? facilities.filter(x => x !== f) : [...facilities, f]);
   };
 
-  const handleSimpan = () => {
-    if (!namaTempat || !harga || !mainPhoto) {
-      Alert.alert("Error", "Nama, Harga, dan Foto Utama wajib diisi!");
-      return;
+// TambahKolam.tsx - Update Fungsi handleSimpan
+
+const handleSimpan = async () => {
+  if (!namaTempat || !harga || !mainPhoto) {
+    Alert.alert("Error", "Nama, Harga, dan Foto Utama wajib diisi!");
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const formData = new FormData();
+
+    // 1. DATA UTAMA (Sesuai req.body di Controller)
+    // Ambil id_mitra dari storage/context kamu (contoh: '1')
+    formData.append('id_mitra', '1'); 
+    formData.append('title', namaTempat);
+    formData.append('location', alamat);
+    formData.append('base_price', harga.replace(/[^0-9]/g, '')); // Bersihkan titik
+    formData.append('price_unit', satuan);
+    formData.append('description', deskripsi);
+    formData.append('jam_buka', jamBuka);
+    formData.append('jam_tutup', jamTutup);
+
+    // 2. FOTO UTAMA (Key harus 'image_url' sesuai controller)
+    const mainUri = Platform.OS === 'ios' ? mainPhoto.replace('file://', '') : mainPhoto;
+    formData.append('image_url', {
+      uri: mainUri,
+      name: 'main_place.jpg',
+      type: 'image/jpeg',
+    } as any);
+
+    // 3. FASILITAS (Kirim Array ID sebagai JSON string)
+    // NOTE: Sesuaikan mapping ID ini dengan tabel `fasilitas` di DB kamu
+    const facilityMapping: { [key: string]: number } = {
+      'Toilet': 1,
+      'Musholla': 2,
+      'Parkiran': 3,
+      'Kantin': 4,
+      'Wifi': 5
+    };
+    const selectedFacilityIds = facilities.map(f => facilityMapping[f]);
+    formData.append('fasilitas', JSON.stringify(selectedFacilityIds));
+
+    // 4. ITEM SEWA (Format: items[i][field])
+    extraItems.forEach((item, index) => {
+      formData.append(`items[${index}][nama_item]`, item.name);
+      formData.append(`items[${index}][price]`, item.price.replace(/[^0-9]/g, ''));
+      formData.append(`items[${index}][price_unit]`, item.unit);
+      
+      // Jika ada gambar per item (karena controller kamu mendukung item[i][image_url])
+      if (item.image) {
+        formData.append(`items[${index}][image_url]`, {
+          uri: item.image,
+          name: `item_${index}.jpg`,
+          type: 'image/jpeg',
+        } as any);
+      }
+    });
+
+    console.log("🚀 Mengirim Data...");
+
+    const response = await axios.post('http://ALAMAT_IP_BACKEND:3000/api/places', formData, {
+      headers: { 
+        'Content-Type': 'multipart/form-data',
+        'Accept': 'application/json'
+      },
+    });
+
+    if (response.data.success) {
+      Alert.alert("Berhasil", "Properti Kolam Berhasil Diterbitkan!");
+      router.back();
     }
-    Alert.alert("Berhasil", "Properti Kolam Berhasil Diterbitkan!");
-    router.back();
-  };
+  } catch (error: any) {
+    console.error("❌ Error Detail:", error.response?.data || error.message);
+    Alert.alert("Gagal", error.response?.data?.message || "Terjadi kesalahan koneksi");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1}}>

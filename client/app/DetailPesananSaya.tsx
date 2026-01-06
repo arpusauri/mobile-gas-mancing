@@ -311,8 +311,8 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
   statusBadge: {
-    position: "absolute",
-    bottom: 65,
+    position: 'absolute',
+    bottom: 50,
     right: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
