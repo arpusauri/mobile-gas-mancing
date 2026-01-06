@@ -7,6 +7,9 @@ import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { api } from '../api/config'; // Sesuaikan path ke file config.js kamu
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ActivityIndicator } from 'react-native'; // Untuk loading button
 
 const { width } = Dimensions.get('window');
 
@@ -87,6 +90,66 @@ export default function FormMitra() {
 
   const removeItem = (id: number) => {
     setFormData({ ...formData, additionalItems: formData.additionalItems.filter(i => i.id !== id) });
+  };
+
+  // HANDLE SUBMIT FORM -> BE //
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      const data = new FormData();
+      
+      // --- SESUAIKAN DENGAN CONTROLLER BACKEND ---
+      // Data Diri (Langkah 1 di Backend)
+      data.append('nama_lengkap', formData.ownerName);
+      data.append('email', formData.ownerEmail);
+      data.append('password_hash', formData.ownerPass); // Backend butuh ini untuk di-bcrypt
+      data.append('no_telepon', formData.ownerPhone);
+      data.append('alamat', formData.ownerAddress);
+      
+      // Data Bank
+      data.append('nama_bank', formData.bankName);
+      data.append('no_rekening', formData.bankAccNo);
+      data.append('atas_nama_rekening', formData.bankAccName);
+
+      // Data Properti (Langkah 2 di Backend)
+      data.append('namaProperti', formData.propName);
+      data.append('alamatProperti', formData.propAddress);
+      data.append('hargaSewa', formData.propPrice);
+      data.append('satuanSewa', formData.propUnit);
+      data.append('jamBuka', formData.propOpen);
+      data.append('jamTutup', formData.propClose);
+      data.append('deskripsi', formData.propDesc);
+
+      // Fasilitas & Items (Kirim sebagai String JSON)
+      data.append('fasilitas', JSON.stringify(formData.facilities));
+      data.append('items', JSON.stringify(formData.additionalItems));
+
+      // Foto (PENTING: Nama field harus 'fotoProperti' sesuai routes)
+      if (formData.propPhoto) {
+        const uri = formData.propPhoto.uri;
+        const name = uri.split('/').pop();
+        const type = `image/${name.split('.').pop()}`;
+        
+        data.append('fotoProperti', { // Diubah dari 'propPhoto' ke 'fotoProperti'
+          uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
+          name: name,
+          type: type,
+        } as any);
+      }
+
+      const result = await api.mitra.register(data, token);
+      Alert.alert("Berhasil!", "Pendaftaran berhasil.");
+      router.replace('/MitraDashboard');
+
+    } catch (error: any) {
+      // Jika error 400 (Data tidak lengkap), akan muncul di sini
+      Alert.alert("Gagal Daftar", error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ==========================================
@@ -318,15 +381,23 @@ export default function FormMitra() {
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={styles.btnNextSplit} 
+                  style={[styles.btnNextSplit, loading && { opacity: 0.7 }]} 
                   onPress={() => {
-                    if (currentStep < 3) setCurrentStep(currentStep + 1);
-                    else Alert.alert("Berhasil!", "Data Terkirim.", [{ text: "OK", onPress: () => router.replace('/MitraDashboard') }]);
+                    if (currentStep < 3) {
+                      setCurrentStep(currentStep + 1);
+                    } else {
+                      handleSubmit(); // Panggil fungsi submit di sini
+                    }
                   }}
+                  disabled={loading}
                 >
-                  <Text style={styles.btnNextText}>
-                    {currentStep === 3 ? 'Konfirmasi' : 'Lanjut'}
-                  </Text>
+                  {loading ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <Text style={styles.btnNextText}>
+                      {currentStep === 3 ? 'Konfirmasi' : 'Lanjut'}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </View>
             )}

@@ -9,6 +9,7 @@ import {
 
 interface FooterBPCProps {
   totalPrice?: number;
+  title?: string; // ✅ 1. Tambahin ini (Opsional)
   buttonLabel: string;
   onPress: () => void;
   disabled?: boolean;
@@ -16,6 +17,7 @@ interface FooterBPCProps {
 
 export default function FooterBPC({ 
   totalPrice, 
+  title = "Total Harga", // ✅ 2. Kasih default value "Total Harga"
   buttonLabel, 
   onPress, 
   disabled = false 
@@ -24,27 +26,24 @@ export default function FooterBPC({
   return (
     <View style={[
       styles.container,
-      // Logika Layout: Kalau ada harga (Booking) dia Kiri-Kanan. Kalau gak ada, dia Tengah.
       totalPrice !== undefined 
         ? { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' } 
         : { justifyContent: 'center', alignItems: 'center' }
     ]}>
       
-      {/* BAGIAN KIRI: HANYA MUNCUL JIKA ADA HARGA (Booking) */}
       {totalPrice !== undefined && (
         <View>
-          <Text style={styles.label}>Total Harga</Text>
+          {/* ✅ 3. Ganti text statis jadi variabel {title} */}
+          <Text style={styles.label}>{title}</Text>
           <Text style={styles.price}>
             Rp. {totalPrice.toLocaleString('id-ID')}
           </Text>
         </View>
       )}
 
-      {/* BAGIAN TOMBOL */}
       <TouchableOpacity 
         style={[
           styles.button, 
-          // Kalau mode Booking (ada harga), tombol menyesuaikan. Kalau Payment/Confirm, tombol full.
           totalPrice !== undefined ? { paddingHorizontal: 20 } : { width: '100%' },
           disabled && { opacity: 0.6 } 
         ]}
@@ -58,21 +57,17 @@ export default function FooterBPC({
   );
 }
 
-// STYLES DIAMBIL PERSIS DARI CODINGAN ASLI ABANG
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    // INI RAHASIANYA DARI KODINGAN ASLI ABANG:
     bottom: -2,  
     left: 0,
     right: 0,
     backgroundColor: '#102A63',
     padding: 20,
-    paddingBottom: 27, // Padding statis yang Abang pakai di awal
-    
+    paddingBottom: 27, 
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    // Shadow
     elevation: 10, 
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -3 },
