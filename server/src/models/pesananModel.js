@@ -78,7 +78,7 @@ class PesananModel {
   }
 
   // ======================================================
-  // 2. GET PESANAN BY ID (BARU)
+  // 2. GET PESANAN BY ID (FIXED - LEFT JOIN pembayaran)
   // ======================================================
   static async findById(id) {
     try {
@@ -99,7 +99,7 @@ class PesananModel {
         t.image_url
       FROM pemesanan p
       INNER JOIN tempat_pemancingan t ON p.id_tempat = t.id_tempat
-      INNER JOIN pembayaran pb ON p.id_pesanan = pb.id_pesanan
+      LEFT JOIN pembayaran pb ON p.id_pesanan = pb.id_pesanan
       WHERE p.id_pesanan = ?
       LIMIT 1`,
         [id]
@@ -112,17 +112,17 @@ class PesananModel {
       // ambil item pemesanan
       const [itemRows] = await db.query(
         `SELECT 
-         i.nama_item AS name,
-         d.kuantitas AS quantity,
-         d.harga_satuan_saat_pesan AS price,
-         d.subtotal
-       FROM detail_pemesanan_item d
-       JOIN item_sewa i ON d.id_item = i.id_item
-       WHERE d.id_pesanan = ?`,
+       i.nama_item AS name,
+       d.kuantitas AS quantity,
+       d.harga_satuan_saat_pesan AS price,
+       d.subtotal
+     FROM detail_pemesanan_item d
+     JOIN item_sewa i ON d.id_item = i.id_item
+     WHERE d.id_pesanan = ?`,
         [id]
       );
 
-      return { ...order, items: itemRows };
+      return { ...order, item_sewa: itemRows };
     } catch (error) {
       console.error("Error in findById:", error);
       throw error;

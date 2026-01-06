@@ -1,47 +1,122 @@
 import React from 'react';
+import { useEffect, useState } from "react";
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
   Image, 
-  TouchableOpacity 
+  TouchableOpacity,
+  Alert, Platform
 } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams, Stack, router } from 'expo-router';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from '@expo/vector-icons';
 import CustomHeader from '../components/CustomHeader';
+import { API_URL, api } from "../api/config";
 
 export default function DetailPesananSaya() {
-  const params = useLocalSearchParams();
-  
-  // Ambil data dari params
-  const orderId = (params.orderId as string) || '#B-000000';
-  const title = (params.title as string) || 'Wisata Alam';
-  const location = (params.location as string) || 'Lokasi tidak tersedia';
-  const price = (params.price as string) || '0';
-  const status = (params.status as string) || 'Menunggu';
-  const imageUri = (params.image as string) || 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4';
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [pesanan, setPesanan] = useState<any>(null);
 
-  // Logika warna badge status
+  useEffect(() => {
+    const fetchDetail = async () => {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        if (!token || !id) return;
+
+        const res = await api.booking.getById(id, token);
+
+        // API kamu return OBJECT, bukan array
+        setPesanan(res);
+      } catch (err) {
+        console.error("Gagal ambil detail pesanan", err);
+      }
+    };
+
+    fetchDetail();
+  }, [id]);
+
+  if (!pesanan) return <Text>Loading...</Text>;
+
+  // ===== mapping data API ke UI =====
+  const {
+    id_pesanan,
+    status_pesanan,
+    place_name,
+    location,
+    nomor_pesanan,
+    total_biaya,
+    image_url,
+    tgl_mulai_sewa,
+    num_people,
+    metode_pembayaran: payment_method,
+    item_sewa = [],
+  } = pesanan;
+
+  const title = place_name;
+  const locationText = location;
+  const orderId = nomor_pesanan;
+  const price = total_biaya;
+  const jumlahOrang = num_people;
+
+  const imageUri =
+    image_url && typeof image_url === "string"
+      ? `${API_URL}/uploads/${image_url.trim()}`
+      : "https://via.placeholder.com/600x400";
+
+  const tanggal = new Date(tgl_mulai_sewa).toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+  const handleBatalPesanan = () => {
+    Alert.alert(
+      "Batalkan Pesanan",
+      "Apakah kamu yakin ingin membatalkan pesanan ini?",
+      [
+        { text: "Tidak", style: "cancel" },
+        {
+          text: "Ya, Batalkan",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem("token");
+              if (!token) return;
+
+              await api.booking.cancel(id_pesanan, token);
+
+              Alert.alert("Berhasil", "Pesanan berhasil dibatalkan");
+              router.replace("/PesananSaya");
+            } catch (err) {
+              Alert.alert("Gagal", "Tidak bisa membatalkan pesanan");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const getStatusUI = () => {
-    switch (status) {
-      case 'Lunas':
-        return { 
-          backgroundColor: '#4ADE80', 
-          textColor: '#FFFFFF', 
-          label: 'Sudah Lunas' 
+    switch (status_pesanan) {
+      case "Lunas":
+        return {
+          backgroundColor: "#4ADE80",
+          textColor: "#FFF",
+          label: "Sudah Lunas",
         };
-      case 'Dibatalkan':
-        return { 
-          backgroundColor: '#EF4444', 
-          textColor: '#FFFFFF', 
-          label: 'Pesanan Dibatalkan' 
+      case "Dibatalkan":
+        return {
+          backgroundColor: "#EF4444",
+          textColor: "#FFF",
+          label: "Dibatalkan",
         };
       default:
-        return { 
-          backgroundColor: '#FACC15', 
-          textColor: '#000000', 
-          label: 'Menunggu Pembayaran' 
+        return {
+          backgroundColor: "#FACC15",
+          textColor: "#000",
+          label: "Menunggu Pembayaran",
         };
     }
   };
@@ -54,29 +129,26 @@ export default function DetailPesananSaya() {
       <CustomHeader title="Detail Pesanan" showCart={true} />
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        
         {/* HERO SECTION */}
         <View style={styles.heroSection}>
-          <Image 
-            source={{ uri: imageUri }} 
-            style={styles.heroImage} 
-          />
+          <Image source={{ uri: imageUri }} style={styles.heroImage} />
           <View style={styles.heroOverlay} />
-          
+
           <View style={styles.heroContent}>
-            <Text style={styles.heroTitle}>
-              {title}
-            </Text>
+            <Text style={styles.heroTitle}>{title}</Text>
             <View style={styles.heroLocationRow}>
               <Ionicons name="location-sharp" size={16} color="white" />
-              <Text style={styles.heroLocationText}>
-                {location}
-              </Text>
+              <Text style={styles.heroLocationText}>{locationText}</Text>
             </View>
           </View>
 
           {/* Badge Status Melayang */}
-          <View style={[styles.statusBadge, { backgroundColor: ui.backgroundColor }]}>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: ui.backgroundColor },
+            ]}
+          >
             <Text style={[styles.statusText, { color: ui.textColor }]}>
               {ui.label}
             </Text>
@@ -86,42 +158,29 @@ export default function DetailPesananSaya() {
         {/* AREA CARD PUTIH */}
         <View style={styles.mainCard}>
           <View style={styles.paymentHeader}>
-            <Text style={styles.sectionTitle}>
-              Informasi Pembayaran
-            </Text>
-            <Text style={styles.orderIdText}>
-              {orderId}
-            </Text>
+            <Text style={styles.sectionTitle}>Informasi Pembayaran</Text>
+            <Text style={styles.orderIdText}>{orderId}</Text>
           </View>
-          
+
           <View style={styles.paymentRow}>
             <View>
-              <Text style={styles.labelDimmed}>
-                Total Harga
-              </Text>
+              <Text style={styles.labelDimmed}>Total Harga</Text>
               <Text style={styles.valueBold}>
-                Rp. {Number(price).toLocaleString('id-ID')}
+                Rp. {Number(price).toLocaleString("id-ID")}
               </Text>
             </View>
             <View style={styles.alignRight}>
-              <Text style={styles.labelDimmed}>
-                Metode Pembayaran
-              </Text>
-              <Text style={styles.valueBold}>
-                BRI
-              </Text>
+              <Text style={styles.labelDimmed}>Metode Pembayaran</Text>
+              <Text style={styles.valueBold}>{payment_method}</Text>
             </View>
           </View>
 
           <View style={styles.divider} />
 
           {/* INFORMASI SEWA - Versi Tukar Tempat */}
-          <Text style={styles.sectionTitle}>
-            Informasi Sewa
-          </Text>
-          
+          <Text style={styles.sectionTitle}>Informasi Sewa</Text>
+
           <View style={styles.rentGrid}>
-            
             {/* 🟢 BARIS ATAS: TANGGAL & ORANG (Sejajar 50:50) */}
             <View style={styles.rowSejajar}>
               {/* Kolom Tanggal */}
@@ -129,12 +188,8 @@ export default function DetailPesananSaya() {
                 <View style={styles.rentItem}>
                   <Ionicons name="calendar" size={20} color="#102A63" />
                   <View style={styles.rentTextCol}>
-                    <Text style={styles.labelDimmed}>
-                      Tanggal
-                    </Text>
-                    <Text style={styles.rentValueLabel}>
-                      03/01/2026
-                    </Text>
+                    <Text style={styles.labelDimmed}>Tanggal</Text>
+                    <Text style={styles.rentValueLabel}>{tanggal}</Text>
                   </View>
                 </View>
               </View>
@@ -144,11 +199,9 @@ export default function DetailPesananSaya() {
                 <View style={styles.rentItem}>
                   <Ionicons name="people" size={20} color="#102A63" />
                   <View style={styles.rentTextCol}>
-                    <Text style={styles.labelDimmed}>
-                      Orang
-                    </Text>
+                    <Text style={styles.labelDimmed}>Orang</Text>
                     <Text style={styles.rentValueLabel}>
-                      1 Orang
+                      {jumlahOrang} Orang
                     </Text>
                   </View>
                 </View>
@@ -159,52 +212,49 @@ export default function DetailPesananSaya() {
             <View style={styles.rentItemMargin}>
               <Ionicons name="location" size={20} color="#102A63" />
               <View style={styles.rentTextCol}>
-                <Text style={styles.labelDimmed}>
-                  Lokasi
-                </Text>
-                <Text style={styles.rentValueLabel}>
-                  {location}
-                </Text>
+                <Text style={styles.labelDimmed}>Lokasi</Text>
+                <Text style={styles.rentValueLabel}>{locationText}</Text>
               </View>
             </View>
-
           </View>
 
           <View style={styles.divider} />
 
-          <Text style={styles.sectionTitle}>
-            Peralatan Yang Disewa:
-          </Text>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false} 
+          <Text style={styles.sectionTitle}>Peralatan Yang Disewa:</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
             style={styles.equipmentScroll}
           >
-            {[1, 2, 3, 4, 5].map((idx) => (
-              <View key={idx} style={styles.itemCard}>
-                <Image 
-                  source={{ uri: 'https://images.unsplash.com/photo-1544552866-d3ed42536cfd' }} 
-                  style={styles.itemImage} 
-                />
-                <View style={styles.itemLabel}>
-                  <Text style={styles.itemText}>
-                    Pancingan
-                  </Text>
+            {item_sewa.length === 0 ? (
+              <Text style={{ color: "#888", fontSize: 12 }}>
+                Tidak ada peralatan tambahan
+              </Text>
+            ) : (
+              item_sewa.map((item: any, idx: number) => (
+                <View key={idx} style={styles.itemCard}>
+                  <Image
+                    source={{ uri: item.image }}
+                    style={styles.itemImage}
+                  />
+                  <View style={styles.itemLabel}>
+                    <Text style={styles.itemText}>{item.name}</Text>
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))
+            )}
           </ScrollView>
-
         </View>
       </ScrollView>
 
       {/* FOOTER ACTION */}
       <View style={styles.footer}>
-        {status === 'Menunggu' && (
-          <TouchableOpacity style={styles.btnBatal}>
-            <Text style={styles.btnBatalText}>
-              Batal
-            </Text>
+        {status_pesanan === "Menunggu Pembayaran" && (
+          <TouchableOpacity
+            style={styles.btnBatal}
+            onPress={handleBatalPesanan}
+          >
+            <Text style={styles.btnBatalText}>Batal</Text>
           </TouchableOpacity>
         )}
       </View>

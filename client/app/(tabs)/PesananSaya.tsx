@@ -19,13 +19,15 @@ import CustomHeader from "@/components/CustomHeader";
 type StatusPesanan = "Lunas" | "Menunggu" | "Dibatalkan";
 
 type Pesanan = {
-  id: string;
+  id_pesanan: string; // ← INI UNTUK API
+  nomor_pesanan: string; // ← INI UNTUK DISPLAY
   title: string;
   location: string;
   price: number;
   status: StatusPesanan;
   image: string;
 };
+
 
 export default function PesananSayaScreen() {
   const router = useRouter();
@@ -57,16 +59,17 @@ export default function PesananSayaScreen() {
       const list = Array.isArray(result) ? result : [];
 
       const mappedOrders: Pesanan[] = list.map((item: any) => ({
-        // Sesuaikan dengan properti yang di-return PesananModel.findAllByUserId
-        id: String(item.id_pesanan),
+        id_pesanan: String(item.id_pesanan), // ← PRIMARY KEY DB
+        nomor_pesanan: item.nomor_pesanan || item.id_pesanan,
         title: item.place_name || "-",
         location: item.place_location || "-",
         price: Number(item.total_harga || 0),
-        status: item.status || "Menunggu",
+        status: item.status_pesanan || "Menunggu",
         image: item.place_image
           ? `${API_URL}/uploads/${item.place_image.trim()}`
           : "https://via.placeholder.com/400",
       }));
+
 
       setOrders(mappedOrders);
     } catch (err) {
@@ -158,7 +161,7 @@ export default function PesananSayaScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {orders.map((item) => (
-            <View key={item.id} style={styles.card}>
+            <View key={item.id_pesanan} style={styles.card}>
               <Image source={{ uri: item.image }} style={styles.cardImage} />
               <View style={styles.imageOverlay} />
 
@@ -166,7 +169,7 @@ export default function PesananSayaScreen() {
                 {/* TOP */}
                 <View style={styles.topRow}>
                   <Text style={styles.orderIdText}>
-                    No. Pesanan : {item.id}
+                    No. Pesanan : {item.nomor_pesanan}
                   </Text>
                   <View
                     style={[
@@ -201,7 +204,7 @@ export default function PesananSayaScreen() {
                       onPress={() =>
                         router.push({
                           pathname: "/DetailPesananSaya",
-                          params: item,
+                          params: { id: item.id_pesanan},
                         })
                       }
                     >
@@ -212,7 +215,7 @@ export default function PesananSayaScreen() {
                       item.status !== "Lunas" && (
                         <TouchableOpacity
                           style={styles.btnBatal}
-                          onPress={() => handleCancel(item.id)}
+                          onPress={() => handleCancel(item.id_pesanan)}
                         >
                           <Text style={styles.btnText}>Batal</Text>
                         </TouchableOpacity>

@@ -69,7 +69,6 @@ export const api = {
     getById: (id) => apiCall(`/api/item_sewa/${id}`),
   },
   booking: {
-    // Ganti /api/booking menjadi /api/pesanan
     getByUserId: (token) =>
       apiCall(`/api/pesanan/my-orders`, {
         headers: { Authorization: `Bearer ${token}` },
