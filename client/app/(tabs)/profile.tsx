@@ -7,15 +7,15 @@ import {
   TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
-  Platform,
   Dimensions,
 } from "react-native";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "../../api/config";
 import BackgroundLayout from "../../components/BackgroundLayout";
+import { Platform, Alert } from "react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -100,6 +100,36 @@ export default function UserProfileScreen() {
     }
   };
 
+  const handleLogout = async () => {
+    const doLogout = async () => {
+      await AsyncStorage.multiRemove(["token", "userId"]);
+
+      if (Platform.OS === "web") {
+        // ⬅️ INI PENTING: HARD RESET ROUTER
+        window.location.href = "/";
+        return;
+      }
+
+      router.replace("/");
+    };
+
+    if (Platform.OS === "web") {
+      const ok = window.confirm("Apakah anda yakin ingin keluar?");
+      if (!ok) return;
+      await doLogout();
+      return;
+    }
+
+    Alert.alert("Logout", "Apakah kamu yakin ingin logout?", [
+      { text: "Batal", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: doLogout,
+      },
+    ]);
+  };
+
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -179,6 +209,12 @@ export default function UserProfileScreen() {
             >
               <Text style={styles.submitButtonText}>Submit</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
           </LinearGradient>
 
           {/* Spacer Bawah */}
@@ -248,7 +284,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginTop: 20,
     alignItems: "center",
-    width: "60%",
+    width: "100%",
     alignSelf: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -262,4 +298,21 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     letterSpacing: 0.5,
   },
+  logoutButton: {
+    marginTop: 20,
+    borderRadius: 30,
+    paddingVertical: 14,
+    alignItems: "center",
+    width: "100%",
+    alignSelf: "center",
+    borderWidth: 1,
+    borderColor: "#FF4D4F",
+  },
+
+  logoutText: {
+    color: "#FF4D4F",
+    fontSize: 15,
+    fontWeight: "bold",
+  },
 });
+

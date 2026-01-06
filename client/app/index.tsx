@@ -11,11 +11,30 @@ import {
   ImageBackground,
   Image 
 } from 'react-native';
-import { router, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import Carousel from 'react-native-reanimated-carousel';
+import { useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+
 
 // IMPORT COMPONENT BACKGROUND
 import BackgroundLayout from '../components/BackgroundLayout'; 
+
+const router = useRouter();
+
+useEffect(() => {
+  const checkLogin = async () => {
+    const token = await AsyncStorage.getItem("token");
+    const userId = await AsyncStorage.getItem("userId");
+
+    if (token && userId) {
+      router.replace("/(tabs)");
+    }
+  };
+
+  checkLogin();
+}, []);
 
 const { width, height } = Dimensions.get('window');
 const isSmallScreen = height < 700;
