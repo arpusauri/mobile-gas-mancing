@@ -98,53 +98,55 @@ export default function FormMitra() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('userToken'); // Ambil token login
-      
-      // Karena ada file gambar, kita wajib pakai FormData
+      const token = await AsyncStorage.getItem('userToken');
       const data = new FormData();
+      
+      // --- SESUAIKAN DENGAN CONTROLLER BACKEND ---
+      // Data Diri (Langkah 1 di Backend)
+      data.append('nama_lengkap', formData.ownerName);
+      data.append('email', formData.ownerEmail);
+      data.append('password_hash', formData.ownerPass); // Backend butuh ini untuk di-bcrypt
+      data.append('no_telepon', formData.ownerPhone);
+      data.append('alamat', formData.ownerAddress);
+      
+      // Data Bank
+      data.append('nama_bank', formData.bankName);
+      data.append('no_rekening', formData.bankAccNo);
+      data.append('atas_nama_rekening', formData.bankAccName);
 
-      // 1. Tambahkan data teks biasa
-      data.append('propName', formData.propName);
-      data.append('propPrice', formData.propPrice);
-      data.append('propUnit', formData.propUnit);
-      data.append('propAddress', formData.propAddress);
-      data.append('propDesc', formData.propDesc);
-      data.append('propOpen', formData.propOpen);
-      data.append('propClose', formData.propClose);
-      data.append('ownerName', formData.ownerName);
-      data.append('ownerEmail', formData.ownerEmail);
-      data.append('ownerPhone', formData.ownerPhone);
-      data.append('bankName', formData.bankName);
-      data.append('bankAccNo', formData.bankAccNo);
-      data.append('bankAccName', formData.bankAccName);
+      // Data Properti (Langkah 2 di Backend)
+      data.append('namaProperti', formData.propName);
+      data.append('alamatProperti', formData.propAddress);
+      data.append('hargaSewa', formData.propPrice);
+      data.append('satuanSewa', formData.propUnit);
+      data.append('jamBuka', formData.propOpen);
+      data.append('jamTutup', formData.propClose);
+      data.append('deskripsi', formData.propDesc);
 
-      // 2. Tambahkan Fasilitas (diubah ke string karena FormData hanya terima string/blob)
-      data.append('facilities', JSON.stringify(formData.facilities));
+      // Fasilitas & Items (Kirim sebagai String JSON)
+      data.append('fasilitas', JSON.stringify(formData.facilities));
+      data.append('items', JSON.stringify(formData.additionalItems));
 
-      // 3. Tambahkan Foto Utama (Jika ada)
+      // Foto (PENTING: Nama field harus 'fotoProperti' sesuai routes)
       if (formData.propPhoto) {
-        const uri = formData.propPhoto;
-        const filename = uri.split('/').pop();
-        const match = /\.(\w+)$/.exec(filename || '');
-        const type = match ? `image/${match[1]}` : `image`;
-
-        data.append('propPhoto', {
+        const uri = formData.propPhoto.uri;
+        const name = uri.split('/').pop();
+        const type = `image/${name.split('.').pop()}`;
+        
+        data.append('fotoProperti', { // Diubah dari 'propPhoto' ke 'fotoProperti'
           uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
-          name: filename,
+          name: name,
           type: type,
         } as any);
       }
 
-      // 4. Kirim ke API
       const result = await api.mitra.register(data, token);
-      
-      Alert.alert("Berhasil!", "Pendaftaran mitra Anda sedang diproses.", [
-        { text: "OK", onPress: () => router.replace('/(tabs)/profile') } // Arahkan ke dashboard/profile
-      ]);
+      Alert.alert("Berhasil!", "Pendaftaran berhasil.");
+      router.replace('/MitraDashboard');
 
     } catch (error: any) {
-      Alert.alert("Gagal Kirim", error.message || "Terjadi kesalahan koneksi");
-      console.error(error);
+      // Jika error 400 (Data tidak lengkap), akan muncul di sini
+      Alert.alert("Gagal Daftar", error.message);
     } finally {
       setLoading(false);
     }
