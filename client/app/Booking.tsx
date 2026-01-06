@@ -75,7 +75,9 @@ export default function BookingScreen() {
         name: item.nama_item,
         price: item.price,
         count: 0,
-        image: item.image ? `${API_URL}/uploads/${item.image.trim()}` : null,
+        image: item.image_url
+          ? `${API_URL}/uploads/${item.image_url.trim()}`
+          : null,
       }));
       setEquipment(eq);
     }
@@ -160,8 +162,8 @@ export default function BookingScreen() {
     });
   };
 
-  const mainImage = place?.images?.[0]
-    ? `${API_URL}/uploads/${place.images[0].trim()}`
+  const mainImage = place?.image_url
+    ? `${API_URL}/uploads/${place.image_url.trim()}`
     : "https://via.placeholder.com/800";
 
   return (
