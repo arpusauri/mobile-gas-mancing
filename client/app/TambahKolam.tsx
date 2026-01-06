@@ -1,19 +1,16 @@
 import React, { useState } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, 
-  Image, Alert, Dimensions, KeyboardAvoidingView, Platform, ActivityIndicator 
+  Image, Alert, Dimensions, KeyboardAvoidingView, Platform 
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import axios from 'axios'; // Pastikan sudah install: npm install axios
 
 const { width } = Dimensions.get('window');
 
-// Sesuaikan dengan IP Laptop kamu jika pakai HP fisik, atau localhost jika simulator
-const API_URL = 'http://192.168.1.X:3000/api/places'; 
-
+// Interface untuk Item Tambahan agar rapi
 interface ExtraItem {
   id: string;
   name: string;
@@ -26,8 +23,7 @@ interface ExtraItem {
 export default function TambahKolam() {
   const router = useRouter();
 
-  // --- STATE ---
-  const [loading, setLoading] = useState(false);
+  // --- STATE PROPERTI UTAMA ---
   const [namaTempat, setNamaTempat] = useState('');
   const [mainPhoto, setMainPhoto] = useState<string | null>(null);
   const [harga, setHarga] = useState('');
@@ -38,22 +34,16 @@ export default function TambahKolam() {
   const [jamTutup, setJamTutup] = useState('20:00');
   const [facilities, setFacilities] = useState<string[]>([]);
   const [showPicker, setShowPicker] = useState<'open' | 'close' | null>(null);
+
+  // --- STATE ITEM TAMBAHAN ---
   const [extraItems, setExtraItems] = useState<ExtraItem[]>([]);
 
-  // --- MAPPING FASILITAS (Sesuaikan dengan ID di Database kamu) ---
-  const facilityMapping: { [key: string]: number } = {
-    'Toilet': 1,
-    'Musholla': 2,
-    'Parkiran': 3,
-    'Kantin': 4,
-    'Wifi': 5
-  };
-
+  // Fungsi Ambil Foto (Main atau Item)
   const pickImage = async (itemId: string | 'main') => {
     let result = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
       aspect: [16, 9],
-      quality: 0.6,
+      quality: 0.7,
     });
 
     if (!result.canceled) {
@@ -67,6 +57,7 @@ export default function TambahKolam() {
     }
   };
 
+  // Fungsi Tambah Row Item Baru
   const addNewItem = () => {
     const newItem: ExtraItem = {
       id: Math.random().toString(),
@@ -83,80 +74,13 @@ export default function TambahKolam() {
     setFacilities(facilities.includes(f) ? facilities.filter(x => x !== f) : [...facilities, f]);
   };
 
-  // --- FUNGSI KIRIM DATA KE BE ---
-  const handleSimpan = async () => {
-    if (!namaTempat || !harga || !mainPhoto || !alamat) {
-      Alert.alert("Error", "Nama, Harga, Alamat, dan Foto Utama wajib diisi!");
+  const handleSimpan = () => {
+    if (!namaTempat || !harga || !mainPhoto) {
+      Alert.alert("Error", "Nama, Harga, dan Foto Utama wajib diisi!");
       return;
     }
-
-    setLoading(true);
-
-    try {
-      const formData = new FormData();
-
-      // 1. Data Utama
-      formData.append('id_mitra', '1'); // Contoh hardcode, baiknya dari AuthContext
-      formData.append('title', namaTempat);
-      formData.append('location', alamat);
-      formData.append('base_price', harga);
-      formData.append('price_unit', satuan);
-      formData.append('description', deskripsi);
-      formData.append('jam_buka', jamBuka);
-      formData.append('jam_tutup', jamTutup);
-
-      // 2. Foto Utama
-      if (mainPhoto) {
-        const fileName = mainPhoto.split('/').pop();
-        const fileType = fileName?.split('.').pop();
-        formData.append('image_url', {
-          uri: Platform.OS === 'android' ? mainPhoto : mainPhoto.replace('file://', ''),
-          name: fileName || 'photo.jpg',
-          type: `image/${fileType || 'jpeg'}`,
-        } as any);
-      }
-
-      // 3. Fasilitas (Kirim sebagai array ID yang di-stringified)
-      const facilityIds = facilities.map(f => facilityMapping[f]);
-      formData.append('fasilitas', JSON.stringify(facilityIds));
-
-      // 4. Item Tambahan (Looping sesuai format middleware BE)
-      extraItems.forEach((item, index) => {
-        formData.append(`items[${index}][nama_item]`, item.name);
-        formData.append(`items[${index}][price]`, item.price);
-        formData.append(`items[${index}][price_unit]`, item.unit);
-        formData.append(`items[${index}][tipe_item]`, item.type.toLowerCase());
-        
-        if (item.image) {
-          const itemFileName = item.image.split('/').pop();
-          const itemFileType = itemFileName?.split('.').pop();
-          formData.append(`items[${index}][image_url]`, {
-            uri: Platform.OS === 'android' ? item.image : item.image.replace('file://', ''),
-            name: itemFileName || `item_${index}.jpg`,
-            type: `image/${itemFileType || 'jpeg'}`,
-          } as any);
-        }
-      });
-
-      console.log("Kirim data ke:", API_URL);
-
-      const response = await axios.post(API_URL, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      if (response.data.success) {
-        Alert.alert("Berhasil", "Properti Kolam Berhasil Diterbitkan!");
-        router.replace('/(mitra)/home'); // Sesuaikan rute kembali kamu
-      }
-
-    } catch (error: any) {
-      console.error("Upload Error:", error.response?.data || error.message);
-      Alert.alert("Gagal", error.response?.data?.message || "Terjadi kesalahan pada server");
-    } finally {
-      setLoading(false);
-    }
+    Alert.alert("Berhasil", "Properti Kolam Berhasil Diterbitkan!");
+    router.back();
   };
 
   return (
@@ -227,7 +151,7 @@ export default function TambahKolam() {
         <View style={styles.section}>
           <Text style={styles.label}>Fasilitas (Pilih yang tersedia)</Text>
           <View style={styles.facRow}>
-            {Object.keys(facilityMapping).map(f => (
+            {['Toilet', 'Musholla', 'Parkiran', 'Kantin', 'Wifi'].map(f => (
               <TouchableOpacity key={f} style={[styles.facChip, facilities.includes(f) && styles.facChipActive]} onPress={() => toggleFacility(f)}>
                 <Ionicons name={facilities.includes(f) ? "checkbox" : "square-outline"} size={16} color={facilities.includes(f) ? "#fff" : "#64748B"} />
                 <Text style={[styles.facText, facilities.includes(f) && {color:'#fff'}]}>{f}</Text>
@@ -236,9 +160,9 @@ export default function TambahKolam() {
           </View>
         </View>
 
-        {/* SECTION 5: ITEM TAMBAHAN */}
+        {/* SECTION 5: ITEM TAMBAHAN (DYNAMICS) */}
         <View style={styles.section}>
-          <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom: 15}>
+          <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom: 15}}>
             <Text style={styles.sectionTitle}>Item Tambahan</Text>
             <TouchableOpacity style={styles.btnAddItem} onPress={addNewItem}>
               <Text style={styles.btnAddItemText}>+ Tambah Item</Text>
@@ -259,7 +183,6 @@ export default function TambahKolam() {
                   <TextInput 
                     style={styles.inputSmall} 
                     placeholder="Nama Item (cth: Joran)" 
-                    value={item.name}
                     onChangeText={(v) => {
                       const newItems = [...extraItems];
                       newItems[index].name = v;
@@ -270,7 +193,6 @@ export default function TambahKolam() {
                     style={styles.inputSmall} 
                     placeholder="Harga" 
                     keyboardType="numeric"
-                    value={item.price}
                     onChangeText={(v) => {
                       const newItems = [...extraItems];
                       newItems[index].price = v;
@@ -284,6 +206,7 @@ export default function TambahKolam() {
               </View>
 
               <View style={[styles.row, {marginTop: 10, gap: 10}]}>
+                {/* Tipe Item */}
                 <View style={{flex: 1}}>
                   <Text style={styles.labelSmall}>Tipe</Text>
                   <View style={styles.miniToggle}>
@@ -302,6 +225,7 @@ export default function TambahKolam() {
                     ))}
                   </View>
                 </View>
+                {/* Satuan Item */}
                 <View style={{flex: 1}}>
                   <Text style={styles.labelSmall}>Satuan</Text>
                   <View style={styles.miniToggle}>
@@ -325,21 +249,14 @@ export default function TambahKolam() {
           ))}
         </View>
 
-        <TouchableOpacity 
-          style={[styles.btnSimpan, loading && {backgroundColor: '#64748B'}]} 
-          onPress={handleSimpan}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.btnSimpanText}>Terbitkan Properti Kolam</Text>
-          )}
+        <TouchableOpacity style={styles.btnSimpan} onPress={handleSimpan}>
+          <Text style={styles.btnSimpanText}>Terbitkan Properti Kolam</Text>
         </TouchableOpacity>
 
         <View style={{height: 50}} />
       </ScrollView>
 
+      {/* TIME PICKER MODAL */}
       {showPicker && (
         <DateTimePicker 
           value={new Date()} 
@@ -358,7 +275,6 @@ export default function TambahKolam() {
   );
 }
 
-// ... styles tetap sama seperti kode kamu sebelumnya ...
 const styles = StyleSheet.create({
   scrollContent: { padding: 20, backgroundColor: '#F8FAFC' },
   section: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 20, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10 },
