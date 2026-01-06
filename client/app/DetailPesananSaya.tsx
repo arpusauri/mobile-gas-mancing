@@ -1,18 +1,18 @@
-import React from 'react';
+import React from "react";
 import { useEffect, useState } from "react";
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  Image, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
   TouchableOpacity,
-  Alert, Platform
-} from 'react-native';
-import { useLocalSearchParams, Stack, router } from 'expo-router';
+  Alert,
+} from "react-native";
+import { useLocalSearchParams, Stack, router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Ionicons } from '@expo/vector-icons';
-import CustomHeader from '../components/CustomHeader';
+import { Ionicons } from "@expo/vector-icons";
+import CustomHeader from "../components/CustomHeader";
 import { API_URL, api } from "../api/config";
 
 export default function DetailPesananSaya() {
@@ -68,42 +68,62 @@ export default function DetailPesananSaya() {
     year: "numeric",
   });
 
-  const handleBatalPesanan = () => {
-    Alert.alert(
-      "Batalkan Pesanan",
-      "Apakah kamu yakin ingin membatalkan pesanan ini?",
-      [
-        { text: "Tidak", style: "cancel" },
-        {
-          text: "Ya, Batalkan",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const token = await AsyncStorage.getItem("token");
-              if (!token) return;
+  // const handleBatalPesanan = async () => {
+  //   console.log("Batal ditekan!"); // debug
+  //   Alert.alert(
+  //     "Batalkan Pesanan",
+  //     "Apakah kamu yakin ingin membatalkan pesanan ini?",
+  //     [
+  //       { text: "Tidak", style: "cancel" },
+  //       {
+  //         text: "Ya, Batalkan",
+  //         style: "destructive",
+  //         onPress: async () => {
+  //           try {
+  //             const token = await AsyncStorage.getItem("token");
+  //             if (!token) {
+  //               Alert.alert("Error", "Token tidak ditemukan");
+  //               return;
+  //             }
 
-              await api.booking.cancel(id_pesanan, token);
+  //             // Debug id
+  //             console.log("ID yang dikirim ke API cancel:", id_pesanan);
 
-              Alert.alert("Berhasil", "Pesanan berhasil dibatalkan");
-              router.replace("/PesananSaya");
-            } catch (err) {
-              Alert.alert("Gagal", "Tidak bisa membatalkan pesanan");
-            }
-          },
-        },
-      ]
-    );
-  };
+  //             // Panggil API cancel
+  //             const res = await api.booking.cancel(id_pesanan, token);
+  //             console.log("Response cancel:", res);
+
+  //             if (res && res.success) {
+  //               Alert.alert("Berhasil", "Pesanan berhasil dibatalkan");
+  //               router.replace("/PesananSaya");
+  //             } else {
+  //               Alert.alert(
+  //                 "Gagal",
+  //                 res?.message || "Tidak bisa membatalkan pesanan"
+  //               );
+  //             }
+  //           } catch (err) {
+  //             console.error(err);
+  //             Alert.alert(
+  //               "Gagal",
+  //               "Terjadi kesalahan saat membatalkan pesanan"
+  //             );
+  //           }
+  //         },
+  //       },
+  //     ]
+  //   );
+  // };
 
   const getStatusUI = () => {
-    switch (status_pesanan) {
-      case "Lunas":
+    switch (status_pesanan?.toLowerCase()) {
+      case "lunas":
         return {
           backgroundColor: "#4ADE80",
           textColor: "#FFF",
           label: "Sudah Lunas",
         };
-      case "Dibatalkan":
+      case "dibatalkan":
         return {
           backgroundColor: "#EF4444",
           textColor: "#FFF",
@@ -221,7 +241,6 @@ export default function DetailPesananSaya() {
               </Text>
             ) : (
               item_sewa.map((item: any, idx: number) => {
-                // Jika backend nanti kirim image, gunakan; kalau tidak, pakai placeholder
                 const imageUri =
                   item.image_url && typeof item.image_url === "string"
                     ? `${API_URL}/uploads/${item.image_url.trim()}`
@@ -234,7 +253,13 @@ export default function DetailPesananSaya() {
                       style={styles.itemImage}
                     />
                     <View style={styles.itemLabel}>
-                      <Text style={styles.itemText}>{item.name}</Text>
+                      <Text
+                        style={styles.itemText}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {item.name}
+                      </Text>
                       {item.quantity && (
                         <Text style={styles.itemSubText}>
                           Jumlah: {item.quantity}
@@ -254,8 +279,8 @@ export default function DetailPesananSaya() {
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
-        {status_pesanan === "Menunggu Pembayaran" && (
+      {/* <View style={styles.footer}>
+        {status_pesanan?.toLowerCase() === "menunggu pembayaran" && (
           <TouchableOpacity
             style={styles.btnBatal}
             onPress={handleBatalPesanan}
@@ -263,25 +288,16 @@ export default function DetailPesananSaya() {
             <Text style={styles.btnBatalText}>Batal</Text>
           </TouchableOpacity>
         )}
-      </View>
+      </View> */}
     </View>
   );
 }
 
+// Styles sama seperti versi sebelumnya
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "white",
-  },
-  heroSection: {
-    height: 280,
-    width: "100%",
-    position: "relative",
-  },
-  heroImage: {
-    width: "100%",
-    height: "100%",
-  },
+  container: { flex: 1, backgroundColor: "white" },
+  heroSection: { height: 280, width: "100%", position: "relative" },
+  heroImage: { width: "100%", height: "100%" },
   heroOverlay: {
     position: "absolute",
     top: 0,
@@ -290,28 +306,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: "rgba(0,0,0,0.3)",
   },
-  heroContent: {
-    position: "absolute",
-    bottom: 55,
-    left: 20,
-  },
-  heroTitle: {
-    color: "white",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  heroLocationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 5,
-  },
-  heroLocationText: {
-    color: "white",
-    fontSize: 14,
-    marginLeft: 5,
-  },
+  heroContent: { position: "absolute", bottom: 55, left: 20 },
+  heroTitle: { color: "white", fontSize: 24, fontWeight: "bold" },
+  heroLocationRow: { flexDirection: "row", alignItems: "center", marginTop: 5 },
+  heroLocationText: { color: "white", fontSize: 14, marginLeft: 5 },
   statusBadge: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 50,
     right: 20,
     paddingHorizontal: 12,
@@ -322,10 +322,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 5,
   },
-  statusText: {
-    fontWeight: "bold",
-    fontSize: 11,
-  },
+  statusText: { fontWeight: "bold", fontSize: 11 },
   mainCard: {
     backgroundColor: "white",
     borderTopLeftRadius: 35,
@@ -340,67 +337,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 15,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#000",
-  },
-  orderIdText: {
-    color: "#94A3B8",
-    fontSize: 14,
-  },
-  paymentRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  alignRight: {
-    alignItems: "flex-end",
-  },
-  labelDimmed: {
-    color: "#94A3B8",
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  valueBold: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#000",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#F1F5F9",
-    marginVertical: 20,
-  },
-  rentGrid: {
-    marginTop: 10,
-  },
+  sectionTitle: { fontSize: 18, fontWeight: "bold", color: "#000" },
+  orderIdText: { color: "#94A3B8", fontSize: 14 },
+  paymentRow: { flexDirection: "row", justifyContent: "space-between" },
+  alignRight: { alignItems: "flex-end" },
+  labelDimmed: { color: "#94A3B8", fontSize: 12, marginBottom: 4 },
+  valueBold: { fontSize: 18, fontWeight: "bold", color: "#000" },
+  divider: { height: 1, backgroundColor: "#F1F5F9", marginVertical: 20 },
+  rentGrid: { marginTop: 10 },
   rowSejajar: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 15,
   },
-  rentCol: {
-    flex: 1,
-  },
-  rentItem: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  rentItemMargin: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  rentTextCol: {
-    marginLeft: 10,
-  },
-  rentValueLabel: {
-    fontSize: 14,
-    color: "#475569",
-    fontWeight: "600",
-  },
-  equipmentScroll: {
-    marginTop: 15,
-  },
+  rentCol: { flex: 1 },
+  rentItem: { flexDirection: "row", alignItems: "center" },
+  rentItemMargin: { flexDirection: "row", alignItems: "center" },
+  rentTextCol: { marginLeft: 10 },
+  rentValueLabel: { fontSize: 14, color: "#475569", fontWeight: "600" },
+  equipmentScroll: { marginTop: 15 },
   itemCard: {
     width: 110,
     marginRight: 15,
@@ -410,36 +365,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F1F5F9",
   },
-  itemImage: {
-    width: "100%",
-    height: 80,
-  },
-  itemLabel: {
-    paddingVertical: 8,
-    alignItems: "center",
-  },
-  itemText: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#102A63",
-  },
-  footer: {
-    padding: 20,
-  },
+  itemImage: { width: "100%", height: 80 },
+  itemLabel: { paddingVertical: 8, alignItems: "center" },
+  itemText: { fontSize: 12, fontWeight: "bold", color: "#102A63" },
+  footer: { padding: 20 },
   btnBatal: {
     backgroundColor: "#DC2626",
     paddingVertical: 16,
     borderRadius: 25,
     alignItems: "center",
   },
-  btnBatalText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  itemSubText: {
-    fontSize: 11,
-    color: "#475569",
-    marginTop: 2,
-  },
+  btnBatalText: { color: "white", fontSize: 16, fontWeight: "bold" },
+  itemSubText: { fontSize: 11, color: "#475569", marginTop: 2 },
 });
