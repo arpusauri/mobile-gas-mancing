@@ -26,14 +26,11 @@ export default function DetailPesananSaya() {
         if (!token || !id) return;
 
         const res = await api.booking.getById(id, token);
-
-        // API kamu return OBJECT, bukan array
-        setPesanan(res);
+        setPesanan(res); // API return object
       } catch (err) {
         console.error("Gagal ambil detail pesanan", err);
       }
     };
-
     fetchDetail();
   }, [id]);
 
@@ -142,7 +139,6 @@ export default function DetailPesananSaya() {
             </View>
           </View>
 
-          {/* Badge Status Melayang */}
           <View
             style={[
               styles.statusBadge,
@@ -177,13 +173,9 @@ export default function DetailPesananSaya() {
 
           <View style={styles.divider} />
 
-          {/* INFORMASI SEWA - Versi Tukar Tempat */}
           <Text style={styles.sectionTitle}>Informasi Sewa</Text>
-
           <View style={styles.rentGrid}>
-            {/* 🟢 BARIS ATAS: TANGGAL & ORANG (Sejajar 50:50) */}
             <View style={styles.rowSejajar}>
-              {/* Kolom Tanggal */}
               <View style={styles.rentCol}>
                 <View style={styles.rentItem}>
                   <Ionicons name="calendar" size={20} color="#102A63" />
@@ -193,8 +185,6 @@ export default function DetailPesananSaya() {
                   </View>
                 </View>
               </View>
-
-              {/* Kolom Orang */}
               <View style={styles.rentCol}>
                 <View style={styles.rentItem}>
                   <Ionicons name="people" size={20} color="#102A63" />
@@ -208,7 +198,6 @@ export default function DetailPesananSaya() {
               </View>
             </View>
 
-            {/* 🟢 BARIS BAWAH: LOKASI (Sendirian biar Luas) */}
             <View style={styles.rentItemMargin}>
               <Ionicons name="location" size={20} color="#102A63" />
               <View style={styles.rentTextCol}>
@@ -227,27 +216,44 @@ export default function DetailPesananSaya() {
             style={styles.equipmentScroll}
           >
             {item_sewa.length === 0 ? (
-              <Text style={{ color: "#888", fontSize: 12 }}>
-                Tidak ada peralatan tambahan
+              <Text style={{ color: "#888", fontSize: 12, marginTop: 8 }}>
+                Tidak ada peralatan yang disewa
               </Text>
             ) : (
-              item_sewa.map((item: any, idx: number) => (
-                <View key={idx} style={styles.itemCard}>
-                  <Image
-                    source={{ uri: item.image }}
-                    style={styles.itemImage}
-                  />
-                  <View style={styles.itemLabel}>
-                    <Text style={styles.itemText}>{item.name}</Text>
+              item_sewa.map((item: any, idx: number) => {
+                // Jika backend nanti kirim image, gunakan; kalau tidak, pakai placeholder
+                const imageUri =
+                  item.image_url && typeof item.image_url === "string"
+                    ? `${API_URL}/uploads/${item.image_url.trim()}`
+                    : "https://via.placeholder.com/120";
+
+                return (
+                  <View key={idx} style={styles.itemCard}>
+                    <Image
+                      source={{ uri: imageUri }}
+                      style={styles.itemImage}
+                    />
+                    <View style={styles.itemLabel}>
+                      <Text style={styles.itemText}>{item.name}</Text>
+                      {item.quantity && (
+                        <Text style={styles.itemSubText}>
+                          Jumlah: {item.quantity}
+                        </Text>
+                      )}
+                      {item.subtotal && (
+                        <Text style={styles.itemSubText}>
+                          Rp {Number(item.subtotal).toLocaleString("id-ID")}
+                        </Text>
+                      )}
+                    </View>
                   </View>
-                </View>
-              ))
+                );
+              })
             )}
           </ScrollView>
         </View>
       </ScrollView>
 
-      {/* FOOTER ACTION */}
       <View style={styles.footer}>
         {status_pesanan === "Menunggu Pembayaran" && (
           <TouchableOpacity
@@ -265,63 +271,63 @@ export default function DetailPesananSaya() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
   heroSection: {
     height: 280,
-    width: '100%',
-    position: 'relative',
+    width: "100%",
+    position: "relative",
   },
   heroImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   heroOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: "rgba(0,0,0,0.3)",
   },
   heroContent: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 55,
     left: 20,
   },
   heroTitle: {
-    color: 'white',
+    color: "white",
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   heroLocationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 5,
   },
   heroLocationText: {
-    color: 'white',
+    color: "white",
     fontSize: 14,
     marginLeft: 5,
   },
   statusBadge: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 65,
     right: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     elevation: 5,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 5,
   },
   statusText: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 11,
   },
   mainCard: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderTopLeftRadius: 35,
     borderTopRightRadius: 35,
     marginTop: -40,
@@ -329,68 +335,68 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   paymentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 15,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: "bold",
+    color: "#000",
   },
   orderIdText: {
-    color: '#94A3B8',
+    color: "#94A3B8",
     fontSize: 14,
   },
   paymentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   alignRight: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   labelDimmed: {
-    color: '#94A3B8',
+    color: "#94A3B8",
     fontSize: 12,
     marginBottom: 4,
   },
   valueBold: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: "bold",
+    color: "#000",
   },
   divider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: "#F1F5F9",
     marginVertical: 20,
   },
   rentGrid: {
     marginTop: 10,
   },
   rowSejajar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 15,
   },
   rentCol: {
     flex: 1,
   },
   rentItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   rentItemMargin: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   rentTextCol: {
     marginLeft: 10,
   },
   rentValueLabel: {
     fontSize: 14,
-    color: '#475569',
-    fontWeight: '600',
+    color: "#475569",
+    fontWeight: "600",
   },
   equipmentScroll: {
     marginTop: 15,
@@ -398,37 +404,42 @@ const styles = StyleSheet.create({
   itemCard: {
     width: 110,
     marginRight: 15,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
     borderRadius: 15,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: "#F1F5F9",
   },
   itemImage: {
-    width: '100%',
+    width: "100%",
     height: 80,
   },
   itemLabel: {
     paddingVertical: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   itemText: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#102A63',
+    fontWeight: "bold",
+    color: "#102A63",
   },
   footer: {
     padding: 20,
   },
   btnBatal: {
-    backgroundColor: '#DC2626',
+    backgroundColor: "#DC2626",
     paddingVertical: 16,
     borderRadius: 25,
-    alignItems: 'center',
+    alignItems: "center",
   },
   btnBatalText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
+  },
+  itemSubText: {
+    fontSize: 11,
+    color: "#475569",
+    marginTop: 2,
   },
 });

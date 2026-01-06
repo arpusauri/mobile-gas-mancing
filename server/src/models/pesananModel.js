@@ -113,6 +113,7 @@ class PesananModel {
       const [itemRows] = await db.query(
         `SELECT 
        i.nama_item AS name,
+       i.image_url,
        d.kuantitas AS quantity,
        d.harga_satuan_saat_pesan AS price,
        d.subtotal
