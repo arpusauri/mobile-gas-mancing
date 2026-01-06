@@ -11,12 +11,15 @@ import {
   Image,
 } from "react-native";
 
+// ✅ 1. Import useRouter
+import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import SearchInput from "../../components/SearchInput";
 import { api, API_URL } from "../../api/config";
 
 const PLACEHOLDER_IMAGE = require("../../assets/images/tempat1.jpg");
+
 interface PopularSpot {
   id: number;
   nama: string;
@@ -34,18 +37,19 @@ interface Tip {
 }
 
 export default function HomeScreen() {
-  // 2. Gunakan Interface pada useState
+  // ✅ 2. Inisialisasi Router
+  const router = useRouter();
+
   const [popularSpots, setPopularSpots] = useState<PopularSpot[]>([]);
   const [tips, setTips] = useState<Tip[]>([]);
 
-  // 3. Tambahkan tipe data pada parameter map dan sort
   const fetchPopularSpots = async () => {
     try {
       const response = await api.places.getAll();
-      console.log("DATA DARI API:", response); // LIHAT DI CONSOLE
+      // console.log("DATA DARI API:", response);
 
       const normalized: PopularSpot[] = response.map((item: any) => ({
-        id: item.id_tempat || item.id, // Gunakan fallback jika id_tempat undefined
+        id: item.id_tempat || item.id,
         nama: item.title || item.nama || "Tanpa Nama",
         lokasi: item.location || item.lokasi || "-",
         harga: Number(item.base_price || item.harga || 0),
@@ -66,7 +70,6 @@ export default function HomeScreen() {
   const fetchTips = async () => {
     try {
       const data = await api.ensiklopedia.getAll();
-      console.log("DATA TIPS:", data);
       setTips(data || []);
     } catch (error) {
       console.error("Error fetch tips:", error);
@@ -77,6 +80,14 @@ export default function HomeScreen() {
     fetchPopularSpots();
     fetchTips();
   }, []);
+
+  // ✅ 3. Fungsi Navigasi ke Detail
+  const handlePressDetail = (id: number) => {
+    router.push({
+      pathname: "/Detail",
+      params: { id: id }, // Kirim ID tempat
+    });
+  };
 
   return (
     <LinearGradient
@@ -116,7 +127,12 @@ export default function HomeScreen() {
               style={{ paddingLeft: 20 }}
             >
               {popularSpots.map((item) => (
-                <TouchableOpacity key={item.id} style={styles.cardPopular}>
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.cardPopular}
+                  // ✅ 4. Pasang OnPress ke Detail
+                  onPress={() => handlePressDetail(item.id)}
+                >
                   <ImageBackground
                     source={
                       item.gambar ? { uri: item.gambar } : PLACEHOLDER_IMAGE
@@ -215,7 +231,11 @@ export default function HomeScreen() {
               <Text style={styles.bannerDesc}>
                 Bergabunglah menjadi mitra kami.
               </Text>
-              <TouchableOpacity style={styles.bannerBtn}>
+              <TouchableOpacity
+                style={styles.bannerBtn}
+                // ✅ 5. Pasang OnPress ke Mitra
+                onPress={() => router.push("/Mitra")}
+              >
                 <Text
                   style={{ color: "white", fontWeight: "bold", fontSize: 12 }}
                 >
