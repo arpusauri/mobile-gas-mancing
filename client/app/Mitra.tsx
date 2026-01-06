@@ -42,7 +42,7 @@ export default function MitraScreen() {
 
            <TouchableOpacity 
              style={styles.mainButton}
-             onPress={() => router.push('/Booking')} // Contoh navigasi
+             onPress={() => router.push('/FormMitra')} // Contoh navigasi
            >
              <Text style={styles.buttonText}>Daftarkan Properti</Text>
            </TouchableOpacity>
