@@ -15,37 +15,48 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import SearchInput from "../../components/SearchInput";
 import { api, API_URL } from "../../api/config";
-import placeholderImage from "../../assets/images/tempat1.jpg";
 
-const PLACEHOLDER_IMAGE = placeholderImage;
+const PLACEHOLDER_IMAGE = require("../../assets/images/tempat1.jpg");
+interface PopularSpot {
+  id: number;
+  nama: string;
+  lokasi: string;
+  harga: number;
+  rating: number;
+  jumlah_ulasan: number;
+  gambar: string | null;
+}
+
+interface Tip {
+  id_artikel: number;
+  judul: string;
+  deskripsi: string;
+}
 
 export default function HomeScreen() {
-  const [popularSpots, setPopularSpots] = useState([]);
-  const [tips, setTips] = useState([]);
+  // 2. Gunakan Interface pada useState
+  const [popularSpots, setPopularSpots] = useState<PopularSpot[]>([]);
+  const [tips, setTips] = useState<Tip[]>([]);
 
-  useEffect(() => {
-    fetchPopularSpots();
-    fetchTips();
-  }, []);
-
+  // 3. Tambahkan tipe data pada parameter map dan sort
   const fetchPopularSpots = async () => {
     try {
       const response = await api.places.getAll();
+      console.log("DATA DARI API:", response); // LIHAT DI CONSOLE
 
-      console.log("RAW TEMPAT PEMANCINGAN:", response);
-
-      const normalized = response.map((item) => ({
-        id: item.id_tempat,
-        nama: item.title,
-        lokasi: item.location,
-        harga: Number(item.base_price || 0),
-        rating: Number(item.average_rating || 0),
-        jumlah_ulasan: Number(item.total_reviews_count || 0),
+      const normalized: PopularSpot[] = response.map((item: any) => ({
+        id: item.id_tempat || item.id, // Gunakan fallback jika id_tempat undefined
+        nama: item.title || item.nama || "Tanpa Nama",
+        lokasi: item.location || item.lokasi || "-",
+        harga: Number(item.base_price || item.harga || 0),
+        rating: Number(item.average_rating || item.rating || 0),
+        jumlah_ulasan: Number(
+          item.total_reviews_count || item.jumlah_ulasan || 0
+        ),
         gambar: item.image_url ? `${API_URL}/uploads/${item.image_url}` : null,
       }));
 
       const sorted = normalized.sort((a, b) => b.rating - a.rating);
-
       setPopularSpots(sorted.slice(0, 5));
     } catch (error) {
       console.error("Error fetch tempat populer:", error);
@@ -55,11 +66,17 @@ export default function HomeScreen() {
   const fetchTips = async () => {
     try {
       const data = await api.ensiklopedia.getAll();
-      setTips(data);
+      console.log("DATA TIPS:", data);
+      setTips(data || []);
     } catch (error) {
       console.error("Error fetch tips:", error);
     }
   };
+
+  useEffect(() => {
+    fetchPopularSpots();
+    fetchTips();
+  }, []);
 
   return (
     <LinearGradient

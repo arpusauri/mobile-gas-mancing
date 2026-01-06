@@ -59,12 +59,17 @@ export default function PesananSayaScreen() {
       const list = Array.isArray(result) ? result : [];
 
       const mappedOrders: Pesanan[] = list.map((item: any) => ({
-        id_pesanan: String(item.id_pesanan), // ← PRIMARY KEY DB
+        id_pesanan: String(item.id_pesanan),
         nomor_pesanan: item.nomor_pesanan || item.id_pesanan,
         title: item.place_name || "-",
         location: item.place_location || "-",
+
+        // GUNAKAN 'item.total_harga' (sesuai return backend)
         price: Number(item.total_harga || 0),
-        status: item.status_pesanan || "Menunggu",
+
+        // GUNAKAN 'item.status' (karena di model backend: status: order.status_pesanan)
+        status: item.status || "Menunggu Pembayaran",
+
         image: item.place_image
           ? `${API_URL}/uploads/${item.place_image.trim()}`
           : "https://via.placeholder.com/400",
@@ -85,11 +90,11 @@ export default function PesananSayaScreen() {
   }, []);
 
   /* ================= STATUS COLOR ================= */
-  const getStatusColor = (status: StatusPesanan) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "Lunas":
         return "#4ADE80";
-      case "Menunggu":
+      case "Menunggu Pembayaran": // Sesuaikan dengan teks dari DB
         return "#FACC15";
       case "Dibatalkan":
         return "#EF4444";
@@ -132,8 +137,15 @@ export default function PesananSayaScreen() {
       const token = await AsyncStorage.getItem("token");
       if (!token) return;
 
-      await api.booking.cancel(id, token);
-      fetchPesanan();
+      const res = await api.booking.cancel(id, token);
+      console.log("Cancel Result:", res);
+
+      // Re-fetch data terbaru dari server
+      await fetchPesanan();
+
+      if (Platform.OS !== "web") {
+        Alert.alert("Sukses", "Pesanan telah dibatalkan.");
+      }
     } catch (error: any) {
       Alert.alert("Error", error.message || "Gagal membatalkan pesanan");
     }

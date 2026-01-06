@@ -8,16 +8,27 @@ import {
   ScrollView,
   Platform,
   Dimensions,
+  Alert,
 } from "react-native";
 import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import CustomHeader from "../components/CustomHeader";
 import FooterBPC from "../components/FooterBPC";
 import { API_URL, api } from "../api/config";
 
 const width = Dimensions.get("window").width;
+
+interface EquipmentItem {
+  id: number;
+  name: string;
+  price: number;
+  count: number;
+  image?: string | null;
+}
 
 export default function BookingScreen() {
   const router = useRouter();
@@ -25,13 +36,18 @@ export default function BookingScreen() {
 
   const [place, setPlace] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
+  useEffect(() => {
+    AsyncStorage.getItem("userId").then((id) => setUserId(id));
+  }, []);
+
+  // Fetch Place Logic (Sama seperti sebelumnya)
   useEffect(() => {
     const fetchPlace = async () => {
       try {
         setLoading(true);
         if (!params.id) return;
-
         const data = await api.places.getById(params.id);
         setPlace(data);
       } catch (err: any) {
@@ -40,25 +56,18 @@ export default function BookingScreen() {
         setLoading(false);
       }
     };
-
     fetchPlace();
   }, [params.id]);
 
-  // ==========================================
-  // STATE & LOGIKA
-  // ==========================================
+  // State
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [duration, setDuration] = useState(1);
   const [people, setPeople] = useState(1);
   const [totalPrice, setTotalPrice] = useState(0);
+  const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
 
-  const mainImage = place?.images?.[0]
-    ? `${API_URL}/uploads/${place.images[0].trim()}`
-    : "https://via.placeholder.com/800";
-
-  const [equipment, setEquipment] = useState<any[]>([]);
-
+  // Load Equipment (Sama seperti sebelumnya)
   useEffect(() => {
     if (place?.item_sewa?.length > 0) {
       const eq = place.item_sewa.map((item: any) => ({
@@ -72,93 +81,99 @@ export default function BookingScreen() {
     }
   }, [place]);
 
-  // Hitung Harga
+  // Hitung Total (Sama seperti sebelumnya)
   useEffect(() => {
-    if (!place) return; // Pastikan data place sudah ada
-
-    // Ambil base price dari API, fallback ke 15000 kalau tidak ada
-    const BASE_PRICE_PER_HOUR = place.base_price || 15000;
-
-    // Total tiket = harga dasar * jumlah orang * durasi
-    const ticketTotal = BASE_PRICE_PER_HOUR * people * duration;
-
-    // Total equipment
-    let equipmentTotal = 0;
-    equipment.forEach((item) => {
-      equipmentTotal += item.price * item.count;
-    });
-
-    // Total keseluruhan
+    if (!place) return;
+    const BASE_PRICE = place.base_price || 15000;
+    const ticketTotal = BASE_PRICE * people * duration;
+    const equipmentTotal = equipment.reduce(
+      (sum, item) => sum + item.price * item.count,
+      0
+    );
     setTotalPrice(ticketTotal + equipmentTotal);
   }, [duration, people, equipment, place]);
 
-  // Logic Tanggal
+  // --- HANDLERS ---
   const handleDateChange = (event: any, selectedDate?: Date) => {
     const currentDate = selectedDate || date;
     if (Platform.OS === "android") setShowDatePicker(false);
     setDate(currentDate);
   };
-  const formatDate = (rawDate: Date) => {
-    return rawDate.toLocaleDateString("id-ID", {
+
+  const formatDate = (rawDate: Date) =>
+    rawDate.toLocaleDateString("id-ID", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
     });
-  };
 
-  // Logic Stepper
   const updateDuration = (type: "plus" | "minus") => {
     if (type === "plus") setDuration(duration + 1);
     if (type === "minus" && duration > 1) setDuration(duration - 1);
   };
+
   const updatePeople = (type: "plus" | "minus") => {
     if (type === "plus") setPeople(people + 1);
     if (type === "minus" && people > 1) setPeople(people - 1);
   };
+
   const updateEquipment = (id: number, type: "plus" | "minus") => {
-    const newData = equipment.map((item) => {
-      if (item.id === id) {
-        if (type === "plus") return { ...item, count: item.count + 1 };
-        if (type === "minus" && item.count > 0)
-          return { ...item, count: item.count - 1 };
-      }
-      return item;
-    });
-    setEquipment(newData);
+    setEquipment((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          if (type === "plus") return { ...item, count: item.count + 1 };
+          if (type === "minus" && item.count > 0)
+            return { ...item, count: item.count - 1 };
+        }
+        return item;
+      })
+    );
   };
+
+  // === PERUBAHAN UTAMA: PINDAH KE HALAMAN PAYMENT ===
+  const handleNavigateToPayment = () => {
+    if (!userId) {
+      Alert.alert("Error", "Silakan login terlebih dahulu.");
+      return;
+    }
+
+    // Filter alat yang dipilih saja agar URL tidak kepanjangan
+    const selectedItems = equipment.filter((item) => item.count > 0);
+
+    router.push({
+      pathname: "/Payment",
+      params: {
+        // Data Tempat
+        placeId: place.id_tempat,
+        placeName: place.title,
+        placeLocation: place.location,
+
+        // Data Booking
+        date: date.toISOString(), // Kirim format ISO string
+        duration: duration.toString(),
+        people: people.toString(),
+        total: totalPrice.toString(),
+
+        // Data Equipment (Stringify array objek)
+        equipment: JSON.stringify(selectedItems),
+      },
+    });
+  };
+
+  const mainImage = place?.images?.[0]
+    ? `${API_URL}/uploads/${place.images[0].trim()}`
+    : "https://via.placeholder.com/800";
 
   return (
     <GestureHandlerRootView style={styles.mainContainer}>
       <Stack.Screen options={{ headerShown: false }} />
-
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* HEADER IMAGE SINGLE */}
+        {/* Header & Image */}
         <View style={styles.headerContainer}>
-          <Image
-            source={{
-              uri: place?.image_url
-                ? `${API_URL}/uploads/${place.image_url.trim()}`
-                : "https://via.placeholder.com/800",
-            }}
-            style={styles.headerImage}
-            resizeMode="cover"
-            onError={(e) => console.log("IMAGE ERROR:", e.nativeEvent.error)}
-          />
-
-          {/* Tombol Back & Judul */}
-          <View
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              zIndex: 10,
-            }}
-          >
+          <Image source={{ uri: mainImage }} style={styles.headerImage} />
+          <View style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
             <CustomHeader title="Booking" transparent={true} />
           </View>
-
-          {/* Info Lokasi & Rating */}
           {place && (
             <View style={styles.headerInfo}>
               <View>
@@ -167,23 +182,12 @@ export default function BookingScreen() {
                   <Ionicons name="location-outline" size={16} color="white" />
                   <Text style={styles.locationSubtitle}>{place.location}</Text>
                 </View>
-                <View style={styles.ratingBadge}>
-                  <Ionicons name="star" size={14} color="#FFD700" />
-                  <Text style={styles.ratingText}>
-                    {place.average_rating
-                      ? Number(place.average_rating).toFixed(1)
-                      : "0.0"}
-                  </Text>
-                  <Text style={styles.ratingCount}>
-                    ({place.review_count || 0})
-                  </Text>
-                </View>
               </View>
             </View>
           )}
         </View>
 
-        {/* FORM DETAIL */}
+        {/* Form Input (Tanggal, Durasi, Orang) */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Detail Booking</Text>
           <View style={styles.separator} />
@@ -195,11 +199,11 @@ export default function BookingScreen() {
             <Ionicons name="calendar-outline" size={20} color="#1F2937" />
             {Platform.OS === "web" ? (
               <View style={styles.webInputOverlay}>
-                {React.createElement("input", {
-                  type: "date",
-                  value: date.toISOString().split("T")[0],
-                  onChange: (e: any) => setDate(new Date(e.target.value)),
-                  style: {
+                <input
+                  type="date"
+                  value={date.toISOString().split("T")[0]}
+                  onChange={(e) => setDate(new Date(e.target.value))}
+                  style={{
                     position: "absolute",
                     top: 0,
                     left: 0,
@@ -208,8 +212,8 @@ export default function BookingScreen() {
                     opacity: 0,
                     cursor: "pointer",
                     zIndex: 100,
-                  },
-                })}
+                  }}
+                />
               </View>
             ) : (
               <TouchableOpacity
@@ -218,7 +222,6 @@ export default function BookingScreen() {
               />
             )}
           </View>
-
           {Platform.OS !== "web" && showDatePicker && (
             <DateTimePicker
               value={date}
@@ -229,39 +232,37 @@ export default function BookingScreen() {
             />
           )}
 
-          {/* 2. DURASI */}
-          {place?.price_unit === "Jam" && (
-            <>
-              <Text style={styles.label}>Durasi (Jam)</Text>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputText}>{duration}</Text>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <View style={styles.spinnerContainer}>
-                    <TouchableOpacity
-                      onPress={() => updateDuration("plus")}
-                      style={styles.spinnerUp}
-                    >
-                      <Ionicons name="caret-up" size={12} color="#555" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => updateDuration("minus")}
-                      style={styles.spinnerDown}
-                    >
-                      <Ionicons name="caret-down" size={12} color="#555" />
-                    </TouchableOpacity>
-                  </View>
-                  <Ionicons
-                    name="time-outline"
-                    size={20}
-                    color="#1F2937"
-                    style={{ marginLeft: 10 }}
-                  />
-                </View>
+          {/* Durasi */}
+          <Text style={styles.label}>
+            Durasi ({place?.price_unit || "Jam"})
+          </Text>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputText}>{duration}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={styles.spinnerContainer}>
+                <TouchableOpacity
+                  onPress={() => updateDuration("plus")}
+                  style={styles.spinnerUp}
+                >
+                  <Ionicons name="caret-up" size={12} color="#555" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => updateDuration("minus")}
+                  style={styles.spinnerDown}
+                >
+                  <Ionicons name="caret-down" size={12} color="#555" />
+                </TouchableOpacity>
               </View>
-            </>
-          )}
+              <Ionicons
+                name="time-outline"
+                size={20}
+                color="#1F2937"
+                style={{ marginLeft: 10 }}
+              />
+            </View>
+          </View>
 
-          {/* Jumlah Orang */}
+          {/* Orang */}
           <Text style={styles.label}>Jumlah Orang</Text>
           <View style={styles.inputWrapper}>
             <Text style={styles.inputText}>{people}</Text>
@@ -290,7 +291,7 @@ export default function BookingScreen() {
           </View>
         </View>
 
-        {/* Peralatan Tambahan */}
+        {/* Equipment List */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Peralatan Tambahan</Text>
           <View style={styles.gridContainer}>
@@ -327,40 +328,21 @@ export default function BookingScreen() {
             ))}
           </View>
         </View>
-
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* FOOTER */}
       <FooterBPC
         totalPrice={totalPrice}
         buttonLabel="Lanjut Ke Pembayaran"
-        onPress={() => {
-          router.push({
-            pathname: "/Payment",
-            params: {
-              total: totalPrice,
-              people: people,
-              date: formatDate(date),
-              equipment: JSON.stringify(equipment),
-            },
-          });
-        }}
+        onPress={handleNavigateToPayment} // Ganti function di sini
       />
     </GestureHandlerRootView>
   );
 }
-// ==========================================
-// STYLES
-// ==========================================
+
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: "#F5F7FA",
-  },
-  scrollContent: {
-    paddingBottom: 20,
-  },
+  mainContainer: { flex: 1, backgroundColor: "#F5F7FA" },
+  scrollContent: { paddingBottom: 20 },
   webInputOverlay: {
     position: "absolute",
     top: 0,
@@ -371,7 +353,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  // HEADER
   headerContainer: {
     height: 375,
     width: "100%",
@@ -382,84 +363,27 @@ const styles = StyleSheet.create({
   headerImage: {
     width: "100%",
     height: "100%",
-    resizeMode: "cover",
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
-  headerOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.2)",
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    zIndex: 1, // Tetap di atas gambar
-  },
-  headerInfo: {
-    position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    zIndex: 2,
-  },
+  headerInfo: { position: "absolute", bottom: 20, left: 20, right: 20 },
   locationTitle: {
     color: "white",
     fontSize: 22,
     fontWeight: "bold",
     marginBottom: 4,
-    textShadowColor: "rgba(0, 0, 0, 0.75)",
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 10,
   },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  locationSubtitle: {
-    color: "white",
-    fontSize: 14,
-  },
-  ratingBadge: {
-    flexDirection: "row",
-    backgroundColor: "white",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignItems: "center",
-    gap: 4,
-  },
-  ratingText: {
-    fontWeight: "bold",
-    fontSize: 12,
-  },
-  ratingCount: {
-    fontSize: 10,
-    color: "#666",
-  },
-  // SECTION
+  locationRow: { flexDirection: "row", alignItems: "center" },
+  locationSubtitle: { color: "white", fontSize: 14 },
   sectionContainer: {
     backgroundColor: "white",
     marginHorizontal: 20,
     marginTop: 20,
     padding: 16,
     borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: "#EEE",
-    marginBottom: 16,
-  },
+  sectionTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 8 },
+  separator: { height: 1, backgroundColor: "#EEE", marginBottom: 16 },
   label: {
     fontSize: 14,
     fontWeight: "600",
@@ -467,7 +391,6 @@ const styles = StyleSheet.create({
     color: "#333",
     marginTop: 10,
   },
-  // INPUT
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
@@ -480,11 +403,7 @@ const styles = StyleSheet.create({
     height: 44,
     position: "relative",
   },
-  inputText: {
-    fontSize: 14,
-    color: "#333",
-    flex: 1,
-  },
+  inputText: { fontSize: 14, color: "#333", flex: 1 },
   spinnerContainer: {
     flexDirection: "column",
     justifyContent: "center",
@@ -492,15 +411,8 @@ const styles = StyleSheet.create({
     borderRightColor: "#EEE",
     paddingRight: 8,
   },
-  spinnerUp: {
-    paddingHorizontal: 4,
-    paddingBottom: 2,
-  },
-  spinnerDown: {
-    paddingHorizontal: 4,
-    paddingTop: 2,
-  },
-  // GRID
+  spinnerUp: { paddingHorizontal: 4, paddingBottom: 2 },
+  spinnerDown: { paddingHorizontal: 4, paddingTop: 2 },
   gridContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -525,20 +437,9 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
     backgroundColor: "#f9f9f9",
   },
-  cardContent: {
-    alignItems: "center",
-    width: "100%",
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  cardPrice: {
-    fontSize: 12,
-    color: "#888",
-    marginBottom: 8,
-  },
+  cardContent: { alignItems: "center", width: "100%" },
+  cardTitle: { fontSize: 14, fontWeight: "bold", textAlign: "center" },
+  cardPrice: { fontSize: 12, color: "#888", marginBottom: 8 },
   counterContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -554,7 +455,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  counterText: {
-    fontWeight: "bold",
-  },
+  counterText: { fontWeight: "bold" },
 });
