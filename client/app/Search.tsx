@@ -14,7 +14,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { api } from "../api/config";
+import { API_URL, api } from "../api/config";
 
 type SearchParams = {
   location?: string;
@@ -33,22 +33,21 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ================= HANDLE SEARCH =================
   const handleSearch = useCallback(async () => {
-    // VALIDASI: JIKA TIDAK ADA PARAMETER, JANGAN CARI
-    // if (!location && !priceMin && !priceMax && !facilities) return;
-
     try {
       setLoading(true);
       setError(null);
 
+      // Panggil API search
       const results = await api.places.search(
         location || "",
-        {
-          min: priceMin || "",
-          max: priceMax || "",
-        },
+        priceMin || "",
+        priceMax || "",
         facilities || ""
       );
+
+      console.log("Search results:", results);
 
       setSearchResults(results || []);
     } catch (err) {
@@ -59,16 +58,37 @@ export default function SearchScreen() {
     }
   }, [location, priceMin, priceMax, facilities]);
 
-  // ✅ AUTO SEARCH — TIDAK LOOP
   useEffect(() => {
     handleSearch();
   }, [handleSearch]);
 
+  // ================= HANDLE PRESS =================
   const handlePress = (placeId: number) => {
     router.push({
       pathname: "/Detail",
       params: { id: placeId },
     });
+  };
+
+  // ================= RENDER ITEM =================
+  const renderItem = ({ item }: { item: any }) => {
+    const imageUri =
+      item.image_url && typeof item.image_url === "string"
+        ? `${API_URL}/uploads/${item.image_url.trim()}`
+        : "https://via.placeholder.com/300";
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => handlePress(item.id_tempat)}
+      >
+        <Image source={{ uri: imageUri }} style={styles.cardImage} />
+        <View style={styles.cardContent}>
+          <Text style={styles.cardName}>{item.title}</Text>
+          <Text style={styles.cardLocation}>{item.location}</Text>
+        </View>
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -128,24 +148,7 @@ export default function SearchScreen() {
                 scrollEnabled={false}
                 data={searchResults}
                 keyExtractor={(item) => item.id_tempat.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.card}
-                    onPress={() => handlePress(item.id_tempat)}
-                  >
-                    <Image
-                      source={{
-                        uri:
-                          item.image_url || "https://via.placeholder.com/300",
-                      }}
-                      style={styles.cardImage}
-                    />
-                    <View style={styles.cardContent}>
-                      <Text style={styles.cardName}>{item.title}</Text>
-                      <Text style={styles.cardLocation}>{item.location}</Text>
-                    </View>
-                  </TouchableOpacity>
-                )}
+                renderItem={renderItem}
               />
             )}
           </ScrollView>
@@ -155,6 +158,7 @@ export default function SearchScreen() {
   );
 }
 
+// ================= STYLE =================
 const styles = StyleSheet.create({
   container: { flex: 1 },
   fixedHeader: { padding: 20 },
@@ -168,8 +172,8 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     backgroundColor: "#F5F7FA",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   titleContainer: { padding: 20 },
   pageTitle: { fontSize: 18, fontWeight: "bold", color: "#133E87" },

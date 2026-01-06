@@ -55,10 +55,11 @@ export const api = {
   places: {
     getAll: () => apiCall("/api/places"),
     getById: (id) => apiCall(`/api/places/${id}`),
-    search: (location, price, facilities) => {
+    search: (location = "", priceMin = "", priceMax = "", facilities = "") => {
       const params = new URLSearchParams();
       if (location) params.append("location", location);
-      if (price) params.append("price", price);
+      if (priceMin) params.append("priceMin", priceMin);
+      if (priceMax) params.append("priceMax", priceMax);
       if (facilities) params.append("facilities", facilities);
 
       return apiCall(`/api/places/search?${params.toString()}`);

@@ -159,7 +159,7 @@ export default function HomeScreen() {
               style={{ paddingLeft: 20 }}
             >
               {tips.map((item) => (
-                <View key={item.id_ensiklopedia} style={styles.cardTips}>
+                <View key={item.id_artikel} style={styles.cardTips}>
                   <View style={styles.iconBox}>
                     <Ionicons name="book-outline" size={24} color="white" />
                   </View>

@@ -7,26 +7,36 @@ import {
   TouchableOpacity,
   Image,
   StatusBar,
-  Dimensions,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import HeaderCarousel from "../components/HeaderCarousel";
-import { api } from "../api/config";
-
-const { width } = Dimensions.get("window");
+import { API_URL, api } from "../api/config";
 
 export default function DetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  const [place, setPlace] = useState(null);
+  const [place, setPlace] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Helper function untuk generate full URL gambar
+  const getFullImageUrl = (img: string | undefined) => {
+    if (!img) return "https://via.placeholder.com/800";
+
+    const trimmed = img.trim();
+
+    // Pastikan pakai folder uploads/
+    return trimmed.startsWith("http")
+      ? trimmed
+      : `${API_URL}/uploads/${trimmed}`;
+  };
+
 
   useEffect(() => {
     const fetchPlace = async () => {
@@ -34,7 +44,7 @@ export default function DetailScreen() {
         setLoading(true);
         const data = await api.places.getById(params.id);
         setPlace(data);
-      } catch (err) {
+      } catch (err: any) {
         setError(err.message || "Gagal mengambil data");
       } finally {
         setLoading(false);
@@ -44,7 +54,7 @@ export default function DetailScreen() {
     if (params.id) fetchPlace();
   }, [params.id]);
 
-  /* ================= LOADING ================= */
+  /* LOADING */
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -53,7 +63,7 @@ export default function DetailScreen() {
     );
   }
 
-  /* ================= ERROR ================= */
+  /* ERROR */
   if (error || !place) {
     return (
       <View style={styles.centerContainer}>
@@ -66,11 +76,8 @@ export default function DetailScreen() {
     );
   }
 
-  /* ================= HEADER IMAGES ================= */
-  const headerImages =
-    place.images && place.images.length > 0
-      ? place.images
-      : [place.image_url || "https://via.placeholder.com/800"];
+  /* IMAGE HEADER */
+  const singleImage = getFullImageUrl(place.image_url);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -85,17 +92,20 @@ export default function DetailScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 130 }}
         >
-          {/* ================= HEADER ================= */}
+          {/* HEADER IMAGE */}
           <View style={styles.headerContainer}>
-            <HeaderCarousel images={headerImages} height={350} />
-
+            <Image
+              source={{ uri: getFullImageUrl(place.image_url) }}
+              style={{ width: "100%", height: 350 }}
+              resizeMode="cover"
+              onError={(e) => console.log("IMAGE ERROR:", e.nativeEvent.error)}
+            />
             <View style={styles.headerOverlay} pointerEvents="box-none">
               <LinearGradient
                 colors={["transparent", "rgba(0,0,0,0.85)"]}
                 style={styles.gradientBottom}
                 pointerEvents="none"
               />
-
               <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => router.back()}
@@ -113,16 +123,14 @@ export default function DetailScreen() {
                 </View>
 
                 <View style={styles.ratingBadge}>
-                  <Ionicons name="star" size={16} color="#F1C94D" />
-                  <Text style={styles.ratingText}>
-                    {place.average_rating || "0.0"}
-                  </Text>
-                </View>
+  <Ionicons name="star" size={16} color="#F1C94D" />
+  <Text style={styles.ratingText}>{place.average_rating || "0.0"}</Text>
+</View>
               </View>
             </View>
           </View>
 
-          {/* ================= BODY ================= */}
+          {/* BODY */}
           <View style={styles.bodyContainer}>
             <Text style={styles.sectionTitle}>Tentang Lokasi</Text>
             <Text style={styles.descriptionText}>
@@ -131,12 +139,12 @@ export default function DetailScreen() {
 
             <View style={styles.divider} />
 
-            {/* ================= FASILITAS ================= */}
+            {/* FASILITAS */}
             {place.fasilitas?.length > 0 && (
               <>
                 <Text style={styles.subHeader}>Fasilitas</Text>
                 <View style={styles.facilitiesRow}>
-                  {place.fasilitas.map((item, idx) => (
+                  {place.fasilitas.map((item: string, idx: number) => (
                     <View key={idx} style={styles.facilityChip}>
                       <Text style={styles.facilityText}>{item}</Text>
                     </View>
@@ -146,12 +154,12 @@ export default function DetailScreen() {
               </>
             )}
 
-            {/* ================= ITEM SEWA ================= */}
+            {/* ITEM SEWA */}
             {place.item_sewa?.length > 0 && (
               <>
                 <Text style={styles.subHeader}>Peralatan Tambahan</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {place.item_sewa.map((item, idx) => (
+                  {place.item_sewa.map((item: any, idx: number) => (
                     <View key={idx} style={styles.equipmentCard}>
                       <LinearGradient
                         colors={["#2A549E", "#133E87"]}
@@ -176,7 +184,7 @@ export default function DetailScreen() {
           </View>
         </ScrollView>
 
-        {/* ================= FOOTER ================= */}
+        {/* FOOTER */}
         <View style={styles.bottomFooter}>
           <View>
             <Text style={styles.priceLabel}>Harga Mulai</Text>
@@ -203,8 +211,7 @@ export default function DetailScreen() {
   );
 }
 
-/* ================= STYLES ================= */
-
+/* STYLES */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "white" },
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
