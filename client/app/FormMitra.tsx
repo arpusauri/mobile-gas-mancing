@@ -7,6 +7,9 @@ import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { api } from './config'; // Sesuaikan path ke file config.js kamu
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ActivityIndicator } from 'react-native'; // Untuk loading button
 
 const { width } = Dimensions.get('window');
 
@@ -87,6 +90,64 @@ export default function FormMitra() {
 
   const removeItem = (id: number) => {
     setFormData({ ...formData, additionalItems: formData.additionalItems.filter(i => i.id !== id) });
+  };
+
+  // HANDLE SUBMIT FORM -> BE //
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('userToken'); // Ambil token login
+      
+      // Karena ada file gambar, kita wajib pakai FormData
+      const data = new FormData();
+
+      // 1. Tambahkan data teks biasa
+      data.append('propName', formData.propName);
+      data.append('propPrice', formData.propPrice);
+      data.append('propUnit', formData.propUnit);
+      data.append('propAddress', formData.propAddress);
+      data.append('propDesc', formData.propDesc);
+      data.append('propOpen', formData.propOpen);
+      data.append('propClose', formData.propClose);
+      data.append('ownerName', formData.ownerName);
+      data.append('ownerEmail', formData.ownerEmail);
+      data.append('ownerPhone', formData.ownerPhone);
+      data.append('bankName', formData.bankName);
+      data.append('bankAccNo', formData.bankAccNo);
+      data.append('bankAccName', formData.bankAccName);
+
+      // 2. Tambahkan Fasilitas (diubah ke string karena FormData hanya terima string/blob)
+      data.append('facilities', JSON.stringify(formData.facilities));
+
+      // 3. Tambahkan Foto Utama (Jika ada)
+      if (formData.propPhoto) {
+        const uri = formData.propPhoto;
+        const filename = uri.split('/').pop();
+        const match = /\.(\w+)$/.exec(filename || '');
+        const type = match ? `image/${match[1]}` : `image`;
+
+        data.append('propPhoto', {
+          uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
+          name: filename,
+          type: type,
+        } as any);
+      }
+
+      // 4. Kirim ke API
+      const result = await api.mitra.register(data, token);
+      
+      Alert.alert("Berhasil!", "Pendaftaran mitra Anda sedang diproses.", [
+        { text: "OK", onPress: () => router.replace('/(tabs)/profile') } // Arahkan ke dashboard/profile
+      ]);
+
+    } catch (error: any) {
+      Alert.alert("Gagal Kirim", error.message || "Terjadi kesalahan koneksi");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ==========================================
@@ -318,15 +379,23 @@ export default function FormMitra() {
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={styles.btnNextSplit} 
+                  style={[styles.btnNextSplit, loading && { opacity: 0.7 }]} 
                   onPress={() => {
-                    if (currentStep < 3) setCurrentStep(currentStep + 1);
-                    else Alert.alert("Berhasil!", "Data Terkirim.", [{ text: "OK", onPress: () => router.replace('/MitraDashboard') }]);
+                    if (currentStep < 3) {
+                      setCurrentStep(currentStep + 1);
+                    } else {
+                      handleSubmit(); // Panggil fungsi submit di sini
+                    }
                   }}
+                  disabled={loading}
                 >
-                  <Text style={styles.btnNextText}>
-                    {currentStep === 3 ? 'Konfirmasi' : 'Lanjut'}
-                  </Text>
+                  {loading ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <Text style={styles.btnNextText}>
+                      {currentStep === 3 ? 'Konfirmasi' : 'Lanjut'}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </View>
             )}

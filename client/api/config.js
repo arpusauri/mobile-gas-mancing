@@ -20,14 +20,26 @@ export const apiCall = async (endpoint, options = {}) => {
   console.log("🔗 Calling API:", `${API_URL}${endpoint}`);
 
   try {
+    // ini yg before update krna (Agar FormData (gambar) bisa terkirim tanpa rusak oleh JSON.stringify)
+    // const response = await fetch(`${API_URL}${endpoint}`, {
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //     ...options.headers,
+    //   },
+    //   ...options,
+    // });
+    // Di dalam apiCall config.js
     const response = await fetch(`${API_URL}${endpoint}`, {
       headers: {
-        "Content-Type": "application/json",
+        // HAPUS Content-Type jika body adalah FormData
+        ...(options.body instanceof FormData 
+            ? {} 
+            : { "Content-Type": "application/json" }),
         ...options.headers,
       },
       ...options,
     });
-
+    
     const result = await response.json();
     console.log("Raw response:", result);
 
@@ -128,6 +140,44 @@ export const api = {
     create: (data) =>
       apiCall("/api/payment", {
         method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
+
+  // FormMitra.tsx
+  mitra: {
+    // Untuk pendaftaran mitra baru
+    register: (data, token) =>
+      apiCall("/api/mitra/register", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify(data),
+      }),
+
+    // Untuk cek status pengajuan mitra (apakah masih pending, disetujui, atau ditolak)
+    getStatus: (token) =>
+      apiCall("/api/mitra/status", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
+    // Untuk upload dokumen mitra (KTP, Foto Tempat, dll) menggunakan FormData
+    uploadDocument: (formData, token) =>
+      apiCall("/api/mitra/upload", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // Khusus FormData, 'Content-Type' jangan diset manual 
+          // Biarkan browser/fetch yang mengaturnya secara otomatis
+          "Content-Type": "multipart/form-data", 
+        },
+        body: formData,
+      }),
+
+    // Untuk update data profil mitra jika sudah terdaftar
+    updateProfile: (data, token) =>
+      apiCall("/api/mitra/update", {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
         body: JSON.stringify(data),
       }),
   },
