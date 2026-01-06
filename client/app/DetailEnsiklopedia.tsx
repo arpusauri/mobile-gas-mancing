@@ -1,223 +1,263 @@
-import React from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Image,
   Dimensions,
   StatusBar,
+  ActivityIndicator,
   Platform,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { api, API_URL } from "../api/config";
 
-// IMPORT COMPONENT CAROUSEL
-import HeaderCarousel from '../components/HeaderCarousel';
+const { height, width } = Dimensions.get("window");
+const HEADER_HEIGHT = height * 0.55;
 
-const { height, width } = Dimensions.get('window');
-const HEADER_HEIGHT = height * 0.55; // Tinggi Header 55% dari layar
+type ArtikelDetail = {
+  id_artikel: string | number;
+  judul: string;
+  description: string;
+  image_url?: string;
+  tgl_terbit?: string;
+};
 
 export default function DetailEnsiklopediaScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  // Data Dummy Carousel (Karena params cuma bawa 1 gambar)
-  const headerImages = [
-    params.image as string,
-    'https://images.unsplash.com/photo-1582293881525-472097e88924?q=80&w=2070&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1535591273668-578e31182c4f?q=80&w=2070&auto=format&fit=crop',
-  ];
+  const [artikel, setArtikel] = useState<ArtikelDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const artikelId = params.id as string; // ambil id dari params
+
+  useEffect(() => {
+    const fetchArtikel = async () => {
+      try {
+        setLoading(true);
+        const data = await api.ensiklopedia.getById(artikelId); // panggil API backend
+        setArtikel(data);
+      } catch (err) {
+        console.error("Gagal mengambil detail artikel:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchArtikel();
+  }, [artikelId]);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#133E87" />
+        <Text style={{ marginTop: 10, color: "#666" }}>Memuat artikel...</Text>
+      </View>
+    );
+  }
+
+  if (!artikel) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>Tidak dapat menampilkan artikel</Text>
+      </View>
+    );
+  }
+
+  const imageUri = artikel.image_url
+    ? `${API_URL}/uploads/${artikel.image_url.trim()}`
+    : "https://via.placeholder.com/400";
 
   return (
-    // 1. WAJIB: GestureHandlerRootView (Sama kayak Booking Screen)
     <GestureHandlerRootView style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <StatusBar
+        barStyle="light-content"
+        translucent
+        backgroundColor="transparent"
+      />
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         bounces={false}
         showsVerticalScrollIndicator={false}
       >
-        
-        {/* === HEADER SECTION === */}
+        {/* HEADER */}
         <View style={styles.headerContainer}>
-          
-          {/* A. CAROUSEL (Layer Paling Bawah) */}
-          <HeaderCarousel images={headerImages} height={HEADER_HEIGHT} />
+          <Image
+            source={{ uri: imageUri }}
+            style={styles.headerImage}
+            resizeMode="cover"
+          />
 
-          {/* B. OVERLAY GRADIENT (Biar tulisan kebaca) */}
-          {/* pointerEvents="none" biar jari tembus ke carousel pas swipe */}
           <View style={styles.gradientOverlay} pointerEvents="none">
-             {/* Gradient Atas (Gelap dikit buat Status Bar) */}
-             <LinearGradient
-                colors={['rgba(0,0,0,0.6)', 'transparent']}
-                style={styles.topGradient}
-             />
-             {/* Gradient Bawah (Gelap buat Nama Ikan) */}
-             <LinearGradient
-                colors={['transparent', 'rgba(0,0,0,0.8)']}
-                style={styles.bottomGradient}
-             />
+            <LinearGradient
+              colors={["rgba(0,0,0,0.6)", "transparent"]}
+              style={styles.topGradient}
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(0,0,0,0.8)"]}
+              style={styles.bottomGradient}
+            />
           </View>
 
-          {/* C. TOMBOL BACK & HEADER TITLE (Layer Atas) */}
+          {/* Navbar */}
           <View style={styles.headerTopBar}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backButton}
+            >
               <Ionicons name="arrow-back" size={24} color="white" />
             </TouchableOpacity>
-            
             <View style={styles.titleContainer}>
-                <Ionicons name="book" size={20} color="white" style={{marginRight: 8}}/>
-                <Text style={styles.headerTitleText}>Detail Ensiklopedia</Text>
+              <Ionicons
+                name="book"
+                size={20}
+                color="white"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.headerTitleText}>Detail Ensiklopedia</Text>
             </View>
-            <View style={{ width: 40 }} /> 
+            <View style={{ width: 40 }} />
           </View>
 
-          {/* D. NAMA IKAN (Di bagian bawah gambar) */}
+          {/* Nama Artikel */}
           <View style={styles.fishNameWrapper} pointerEvents="none">
-             <Text style={styles.fishNameText}>{params.name || 'Nama Ikan'}</Text>
+            <Text style={styles.fishNameText}>{artikel.judul}</Text>
           </View>
-
         </View>
 
-        {/* === DESCRIPTION SECTION === */}
-        {/* Margin top negatif supaya "overlap" ke atas gambar */}
+        {/* CONTENT */}
         <View style={styles.contentContainer}>
+          {/* TANGGAL TERBIT */}
+          {artikel.tgl_terbit && (
+            <Text style={styles.tanggalTerbitText}>
+              Terbit:{" "}
+              {new Date(artikel.tgl_terbit).toLocaleDateString("id-ID", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+              })}
+            </Text>
+          )}
           <Text style={styles.sectionTitle}>Deskripsi</Text>
           <Text style={styles.descriptionText}>
-            {params.description || 
-             'Ikan ini adalah salah satu spesies yang paling dikenal di terumbu karang. Mereka memiliki warna yang cerah dan pola yang unik, menjadikannya favorit bagi para penyelam dan pecinta akuarium. \n\nHabitat aslinya meliputi perairan hangat di wilayah Indo-Pasifik. Ikan ini sering ditemukan bersembunyi di balik anemon atau celah karang untuk menghindari predator.'}
-          </Text>
-          
-          {/* Dummy text tambahan biar bisa discroll */}
-          <Text style={[styles.descriptionText, {marginTop: 15}]}>
-             Makanan utama mereka adalah plankton dan alga kecil. Siklus hidup mereka sangat menarik, di mana beberapa spesies dapat berganti kelamin tergantung pada kondisi lingkungan dan struktur sosial dalam kelompoknya.
+            {artikel.description ||
+              "Tidak ada deskripsi tersedia untuk artikel ini."}
           </Text>
         </View>
-
       </ScrollView>
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  scrollContent: {
-    paddingBottom: 40,
-  },
-  
-  // --- HEADER STYLES ---
+  mainContainer: { flex: 1, backgroundColor: "#F5F7FA" },
+  scrollContent: { paddingBottom: 40 },
+
+  // HEADER
   headerContainer: {
     height: HEADER_HEIGHT,
-    width: '100%',
-    position: 'relative', // Kunci agar children absolute bisa nempel di sini
-    backgroundColor: '#000', // Fallback color
+    width: "100%",
+    position: "relative",
+    backgroundColor: "#000",
   },
-  
-  // Layer Gradient
+  headerImage: {
+    ...StyleSheet.absoluteFillObject,
+  },
   gradientOverlay: {
-    ...StyleSheet.absoluteFillObject, // Full screen menutup headerContainer
-    justifyContent: 'space-between',
-    zIndex: 1, // Di atas gambar
-    borderBottomLeftRadius: 30, // Ikutin lengkungan carousel
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "space-between",
+    zIndex: 1,
+    borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
-  topGradient: {
-    height: 120,
-    width: '100%',
-  },
-  bottomGradient: {
-    height: 160,
-    width: '100%',
-  },
+  topGradient: { height: 120, width: "100%" },
+  bottomGradient: { height: 160, width: "100%" },
 
-  // Layer Navbar (Back Button)
+  // Navbar
   headerTopBar: {
-    position: 'absolute',
+    position: "absolute",
     top: StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 40,
     left: 20,
     right: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    zIndex: 10, // Paling atas supaya tombol bisa dipencet
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    zIndex: 10,
   },
   backButton: {
     width: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.2)', // Lingkaran transparan halus
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.2)",
     borderRadius: 20,
   },
   titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.2)', // Opsional: latar belakang tipis biar teks jelas
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.2)",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
   },
-  headerTitleText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'white',
-  },
+  headerTitleText: { fontSize: 16, fontWeight: "bold", color: "white" },
 
-  // Layer Nama Ikan
+  // Nama artikel
   fishNameWrapper: {
-    position: 'absolute',
-    bottom: 50, // Jarak dari bawah HeaderContainer (Biar gak ketutup kartu putih)
+    position: "absolute",
+    bottom: 50,
     left: 25,
     right: 25,
     zIndex: 5,
   },
   fishNameText: {
     fontSize: 32,
-    fontWeight: '800', // Extra Bold
-    color: 'white',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    fontWeight: "800",
+    color: "white",
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 10,
   },
 
-  // --- CONTENT STYLES ---
+  // CONTENT
   contentContainer: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     paddingHorizontal: 25,
     paddingTop: 30,
     paddingBottom: 40,
-    
-    // INI LOGIKA OVERLAPNYA:
-    marginTop: -35, // Tarik ke atas menutupi bagian bawah HeaderContainer
-    
-    // Shadow biar kelihatan misah dari gambar
-    shadowColor: '#000',
+    marginTop: -35,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 5,
-    minHeight: height * 0.5, // Biar background putih minimal setengah layar
+    minHeight: height * 0.5,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
-    color: '#1F2937',
+    color: "#1F2937",
   },
   descriptionText: {
     fontSize: 15,
     lineHeight: 24,
-    color: '#4B5563',
-    textAlign: 'justify',
+    color: "#4B5563",
+    textAlign: "justify",
+  },
+  tanggalTerbitText: {
+    fontSize: 13,
+    color: "#6B7280",
+    fontStyle: "italic",
+    marginBottom: 10,
   },
 });

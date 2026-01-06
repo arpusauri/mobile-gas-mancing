@@ -126,6 +126,7 @@ export const api = {
   },
   review: {
     getAll: () => apiCall("/api/review"),
+    getByPlaceId: (placeId) => apiCall(`/api/review/place/${placeId}`),
     create: (data) =>
       apiCall("/api/review", {
         method: "POST",

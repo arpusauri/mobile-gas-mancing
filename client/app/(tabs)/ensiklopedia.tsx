@@ -12,29 +12,35 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { api } from "../../api/config";
+import { api, API_URL } from "../../api/config";
+
+// --- TYPE ARTIKEL ---
+type Artikel = {
+  id_artikel: number | string;
+  judul: string;
+  description?: string;
+  image_url?: string; // gunakan ini langsung
+};
 
 // --- KOMPONEN KARTU ---
-const FishCard = ({ item }) => {
+const FishCard: React.FC<{ item: Artikel }> = ({ item }) => {
   const [showDesc, setShowDesc] = useState(false);
   const router = useRouter();
 
-  // Get image from media array or image_url
-  const imageUrl =
-    item.media && item.media.length > 0
-      ? item.media[0].media_url
-      : item.image_url || "https://via.placeholder.com/300";
+  // langsung pakai image_url
+  const imageSource = {
+    uri: item.image_url
+      ? `${API_URL}/uploads/${item.image_url.trim()}`
+      : "https://via.placeholder.com/300",
+  };
 
-  const imageSource = { uri: imageUrl };
-
-  // Navigate to detail
   const handleDetailPress = () => {
     router.push({
       pathname: "/DetailEnsiklopedia",
       params: {
         id: item.id_artikel,
         name: item.judul,
-        image: imageUrl,
+        image: imageSource.uri,
         description: item.description,
       },
     });
@@ -56,7 +62,6 @@ const FishCard = ({ item }) => {
           colors={["transparent", "rgba(0,0,0,0.8)"]}
           style={styles.gradientOverlay}
         />
-
         {showDesc ? (
           <View style={styles.descriptionOverlay}>
             <Text style={styles.descTitle}>{item.judul}</Text>
@@ -68,7 +73,6 @@ const FishCard = ({ item }) => {
         ) : (
           <View style={styles.cardContent}>
             <Text style={styles.fishName}>{item.judul}</Text>
-
             <TouchableOpacity
               style={styles.detailButton}
               onPress={handleDetailPress}
@@ -82,40 +86,38 @@ const FishCard = ({ item }) => {
   );
 };
 
-// --- KOMPONEN UTAMA PAGE ---
+// --- KOMPONEN UTAMA ---
 export default function EncyclopediaScreen() {
-  const [articles, setArticles] = useState([]);
-  const [filteredArticles, setFilteredArticles] = useState([]);
+  const [articles, setArticles] = useState<Artikel[]>([]);
+  const [filteredArticles, setFilteredArticles] = useState<Artikel[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch articles from API
   useEffect(() => {
     const fetchArticles = async () => {
       try {
         setLoading(true);
-        const data = await api.ensiklopedia.getAll();
+        const data: Artikel[] = await api.ensiklopedia.getAll();
         setArticles(data);
         setFilteredArticles(data);
-      } catch (err) {
-        setError(err.message || "Gagal mengambil data");
+      } catch (err: unknown) {
+        if (err instanceof Error) setError(err.message);
+        else setError("Gagal mengambil data");
         console.error("Error fetching articles:", err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchArticles();
   }, []);
 
-  // Filter articles based on search
   useEffect(() => {
-    if (searchQuery.trim() === "") {
+    if (!searchQuery.trim()) {
       setFilteredArticles(articles);
     } else {
       const filtered = articles.filter((article) =>
-        article.judul?.toLowerCase().includes(searchQuery.toLowerCase())
+        article.judul.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredArticles(filtered);
     }
@@ -123,13 +125,11 @@ export default function EncyclopediaScreen() {
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
       <View style={styles.header}>
         <Ionicons name="book" size={24} color="#133E87" />
         <Text style={styles.headerTitle}>Ensiklopedia</Text>
       </View>
 
-      {/* SEARCH BAR */}
       <View style={styles.searchContainer}>
         <Ionicons
           name="search"
@@ -145,7 +145,6 @@ export default function EncyclopediaScreen() {
         />
       </View>
 
-      {/* ERROR STATE */}
       {error && (
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={24} color="#FF6B6B" />
@@ -153,7 +152,6 @@ export default function EncyclopediaScreen() {
         </View>
       )}
 
-      {/* LOADING STATE */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#133E87" />
@@ -167,7 +165,6 @@ export default function EncyclopediaScreen() {
           <Text style={styles.emptyText}>Tidak ada artikel ditemukan</Text>
         </View>
       ) : (
-        /* LIST KARTU */
         <FlatList
           data={filteredArticles}
           keyExtractor={(item) => item.id_artikel.toString()}
@@ -180,12 +177,9 @@ export default function EncyclopediaScreen() {
   );
 }
 
+// ================= STYLE =================
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F5F7FA",
-    paddingTop: 50,
-  },
+  container: { flex: 1, backgroundColor: "#F5F7FA", paddingTop: 50 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -215,15 +209,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#EEE",
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: "#333",
-  },
-  listContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 100,
-  },
+  searchInput: { flex: 1, fontSize: 14, color: "#333" },
+  listContainer: { paddingHorizontal: 20, paddingBottom: 100 },
   cardContainer: {
     height: 200,
     marginBottom: 20,
@@ -235,15 +222,8 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     backgroundColor: "#fff",
   },
-  cardImage: {
-    flex: 1,
-    width: "100%",
-    justifyContent: "flex-end",
-  },
-  gradientOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 20,
-  },
+  cardImage: { flex: 1, width: "100%", justifyContent: "flex-end" },
+  gradientOverlay: { ...StyleSheet.absoluteFillObject, borderRadius: 20 },
   cardContent: {
     padding: 15,
     flexDirection: "row",
@@ -266,11 +246,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 15,
   },
-  detailButtonText: {
-    color: "white",
-    fontWeight: "600",
-    fontSize: 12,
-  },
+  detailButtonText: { color: "white", fontWeight: "600", fontSize: 12 },
   descriptionOverlay: {
     flex: 1,
     backgroundColor: "rgba(19, 62, 135, 0.9)",
@@ -292,17 +268,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  tapHint: {
-    color: "#DDD",
-    fontSize: 10,
-    marginTop: 15,
-    fontStyle: "italic",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  tapHint: { color: "#DDD", fontSize: 10, marginTop: 15, fontStyle: "italic" },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   errorContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -320,14 +287,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  emptyText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#999",
-  },
+  emptyContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  emptyText: { marginTop: 10, fontSize: 16, color: "#999" },
 });

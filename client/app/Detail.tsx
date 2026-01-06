@@ -17,6 +17,16 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { API_URL, api } from "../api/config";
 
+type Review = {
+  id: number;
+  userId: number;
+  userName: string;
+  userEmail?: string;
+  rating: number;
+  comment: string;
+  date: string;
+};
+
 export default function DetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -24,6 +34,9 @@ export default function DetailScreen() {
   const [place, setPlace] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
 
   // Helper function untuk generate full URL gambar
   const getFullImageUrl = (img: string | undefined) => {
@@ -36,7 +49,6 @@ export default function DetailScreen() {
       ? trimmed
       : `${API_URL}/uploads/${trimmed}`;
   };
-
 
   useEffect(() => {
     const fetchPlace = async () => {
@@ -52,6 +64,36 @@ export default function DetailScreen() {
     };
 
     if (params.id) fetchPlace();
+  }, [params.id]);
+
+  useEffect(() => {
+    const fetchDetailAndReviews = async () => {
+      try {
+        setLoading(true);
+        setLoadingReviews(true);
+
+        // 1️⃣ Ambil detail tempat
+        const placeData = await api.places.getById(params.id as string);
+        setPlace(placeData);
+
+        // 2️⃣ Ambil review untuk tempat ini
+        const reviewResponse = await api.review.getByPlaceId(
+          params.id as string
+        );
+
+        // Jika API return { success, data: [...] }
+        const reviewList = reviewResponse?.data || reviewResponse || [];
+        setReviews(reviewList);
+      } catch (err) {
+        console.error("Gagal ambil detail & review:", err);
+        setError("Gagal mengambil data tempat atau review");
+      } finally {
+        setLoading(false);
+        setLoadingReviews(false);
+      }
+    };
+
+    if (params.id) fetchDetailAndReviews();
   }, [params.id]);
 
   /* LOADING */
@@ -123,9 +165,11 @@ export default function DetailScreen() {
                 </View>
 
                 <View style={styles.ratingBadge}>
-  <Ionicons name="star" size={16} color="#F1C94D" />
-  <Text style={styles.ratingText}>{place.average_rating || "0.0"}</Text>
-</View>
+                  <Ionicons name="star" size={16} color="#F1C94D" />
+                  <Text style={styles.ratingText}>
+                    {place.average_rating || "0.0"}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
@@ -161,14 +205,17 @@ export default function DetailScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {place.item_sewa.map((item: any, idx: number) => (
                     <View key={idx} style={styles.equipmentCard}>
-                      <LinearGradient
-                        colors={["#2A549E", "#133E87"]}
+                      <Image
+                        source={{ uri: getFullImageUrl(item.image_url) }}
                         style={styles.equipmentBg}
-                      >
-                        <Text style={{ color: "white", fontWeight: "bold" }}>
-                          {item.nama_item}
-                        </Text>
-                      </LinearGradient>
+                        resizeMode="cover"
+                        onError={(e) =>
+                          console.log(
+                            "ITEM SEWA IMAGE ERROR:",
+                            e.nativeEvent.error
+                          )
+                        }
+                      />
                       <View style={styles.equipmentLabel}>
                         <Text style={{ color: "white", fontSize: 11 }}>
                           Rp {item.price?.toLocaleString("id-ID")} /{" "}
@@ -180,6 +227,49 @@ export default function DetailScreen() {
                 </ScrollView>
                 <View style={styles.divider} />
               </>
+            )}
+
+            {/* ULASAN */}
+            <Text style={styles.subHeader}>Ulasan Pengunjung</Text>
+
+            {loadingReviews ? (
+              <ActivityIndicator
+                size="small"
+                color="#133E87"
+                style={{ marginTop: 10 }}
+              />
+            ) : reviews.length === 0 ? (
+              <Text style={{ color: "#666" }}>
+                Belum ada ulasan untuk tempat ini.
+              </Text>
+            ) : (
+              <View style={styles.reviewList}>
+                {reviews.map((review) => (
+                  <View key={review.id} style={styles.reviewCard}>
+                    <View style={styles.reviewHeader}>
+                      <View
+                        style={{ flexDirection: "row", alignItems: "center" }}
+                      >
+                        <View>
+                          <Text style={styles.reviewerName}>
+                            {review.userName}
+                          </Text>
+                          <View style={styles.reviewRatingRow}>
+                            <Ionicons name="star" size={12} color="#F1C94D" />
+                            <Text style={styles.reviewRatingText}>
+                              {review.rating}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                    <Text style={styles.reviewComment}>{review.comment}</Text>
+                    <Text style={{ fontSize: 10, color: "#999", marginTop: 4 }}>
+                      {new Date(review.date).toLocaleDateString("id-ID")}
+                    </Text>
+                  </View>
+                ))}
+              </View>
             )}
           </View>
         </ScrollView>
@@ -288,6 +378,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
+  // ULASAN
+  reviewList: { marginTop: 5 },
+  reviewCard: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 16,
+    padding: 15,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  reviewHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+    backgroundColor: "#ddd",
+  },
+  reviewerName: { fontWeight: "bold", fontSize: 14, color: "#333" },
+  reviewRatingRow: { flexDirection: "row", alignItems: "center", marginTop: 2 },
+  reviewRatingText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    marginLeft: 3,
+    color: "#555",
+  },
+  reviewComment: { fontSize: 13, color: "#444", lineHeight: 20 },
 
   bottomFooter: {
     position: "absolute",

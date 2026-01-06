@@ -84,7 +84,6 @@ export default function SignInScreen() {
 
       console.log("Login response:", response);
 
-      // ⬇️ SIMPAN DATA LOGIN
       await AsyncStorage.setItem("token", response.token);
       await AsyncStorage.setItem(
         "userId",

@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
-  cardTitle: { fontSize: 18, fontWeight: "bold", color: "black" },
+  cardTitle: { fontSize: 18, fontWeight: "bold", color: "white" },
   cardLocation: {
     fontSize: 12,
     color: "white",
