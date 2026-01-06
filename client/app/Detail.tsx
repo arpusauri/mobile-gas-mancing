@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import FooterBPC from "../components/FooterBPC";
 
 import { API_URL, api } from "../api/config";
 
@@ -185,27 +186,17 @@ export default function DetailScreen() {
         </ScrollView>
 
         {/* FOOTER */}
-        <View style={styles.bottomFooter}>
-          <View>
-            <Text style={styles.priceLabel}>Harga Mulai</Text>
-            <Text style={styles.priceText}>
-              Rp {place.base_price?.toLocaleString("id-ID")}
-              <Text style={styles.priceUnit}> / {place.price_unit}</Text>
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.bookButton}
-            onPress={() =>
-              router.push({
-                pathname: "/Booking",
-                params: { id: place.id_tempat },
-              })
+        <FooterBPC 
+            totalPrice={place.base_price} 
+            title="Harga Mulai"
+            buttonLabel="Pesan Sekarang"
+            onPress={() => 
+                router.push({
+                    pathname: "/Booking",
+                    params: { id: place.id_tempat },
+                })
             }
-          >
-            <Text style={styles.bookButtonText}>Pesan Sekarang</Text>
-          </TouchableOpacity>
-        </View>
+        />
       </View>
     </GestureHandlerRootView>
   );

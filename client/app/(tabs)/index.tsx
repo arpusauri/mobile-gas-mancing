@@ -11,41 +11,56 @@ import {
   Image,
 } from "react-native";
 
+// ✅ 1. Import useRouter
+import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import SearchInput from "../../components/SearchInput";
 import { api, API_URL } from "../../api/config";
-import placeholderImage from "../../assets/images/tempat1.jpg";
 
-const PLACEHOLDER_IMAGE = placeholderImage;
+const PLACEHOLDER_IMAGE = require("../../assets/images/tempat1.jpg");
+
+interface PopularSpot {
+  id: number;
+  nama: string;
+  lokasi: string;
+  harga: number;
+  rating: number;
+  jumlah_ulasan: number;
+  gambar: string | null;
+}
+
+interface Tip {
+  id_artikel: number;
+  judul: string;
+  deskripsi: string;
+}
 
 export default function HomeScreen() {
-  const [popularSpots, setPopularSpots] = useState([]);
-  const [tips, setTips] = useState([]);
+  // ✅ 2. Inisialisasi Router
+  const router = useRouter();
 
-  useEffect(() => {
-    fetchPopularSpots();
-    fetchTips();
-  }, []);
+  const [popularSpots, setPopularSpots] = useState<PopularSpot[]>([]);
+  const [tips, setTips] = useState<Tip[]>([]);
 
   const fetchPopularSpots = async () => {
     try {
       const response = await api.places.getAll();
+      // console.log("DATA DARI API:", response);
 
-      console.log("RAW TEMPAT PEMANCINGAN:", response);
-
-      const normalized = response.map((item) => ({
-        id: item.id_tempat,
-        nama: item.title,
-        lokasi: item.location,
-        harga: Number(item.base_price || 0),
-        rating: Number(item.average_rating || 0),
-        jumlah_ulasan: Number(item.total_reviews_count || 0),
+      const normalized: PopularSpot[] = response.map((item: any) => ({
+        id: item.id_tempat || item.id,
+        nama: item.title || item.nama || "Tanpa Nama",
+        lokasi: item.location || item.lokasi || "-",
+        harga: Number(item.base_price || item.harga || 0),
+        rating: Number(item.average_rating || item.rating || 0),
+        jumlah_ulasan: Number(
+          item.total_reviews_count || item.jumlah_ulasan || 0
+        ),
         gambar: item.image_url ? `${API_URL}/uploads/${item.image_url}` : null,
       }));
 
       const sorted = normalized.sort((a, b) => b.rating - a.rating);
-
       setPopularSpots(sorted.slice(0, 5));
     } catch (error) {
       console.error("Error fetch tempat populer:", error);
@@ -55,10 +70,23 @@ export default function HomeScreen() {
   const fetchTips = async () => {
     try {
       const data = await api.ensiklopedia.getAll();
-      setTips(data);
+      setTips(data || []);
     } catch (error) {
       console.error("Error fetch tips:", error);
     }
+  };
+
+  useEffect(() => {
+    fetchPopularSpots();
+    fetchTips();
+  }, []);
+
+  // ✅ 3. Fungsi Navigasi ke Detail
+  const handlePressDetail = (id: number) => {
+    router.push({
+      pathname: "/Detail",
+      params: { id: id }, // Kirim ID tempat
+    });
   };
 
   return (
@@ -99,7 +127,12 @@ export default function HomeScreen() {
               style={{ paddingLeft: 20 }}
             >
               {popularSpots.map((item) => (
-                <TouchableOpacity key={item.id} style={styles.cardPopular}>
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.cardPopular}
+                  // ✅ 4. Pasang OnPress ke Detail
+                  onPress={() => handlePressDetail(item.id)}
+                >
                   <ImageBackground
                     source={
                       item.gambar ? { uri: item.gambar } : PLACEHOLDER_IMAGE
@@ -198,7 +231,11 @@ export default function HomeScreen() {
               <Text style={styles.bannerDesc}>
                 Bergabunglah menjadi mitra kami.
               </Text>
-              <TouchableOpacity style={styles.bannerBtn}>
+              <TouchableOpacity
+                style={styles.bannerBtn}
+                // ✅ 5. Pasang OnPress ke Mitra
+                onPress={() => router.push("/Mitra")}
+              >
                 <Text
                   style={{ color: "white", fontWeight: "bold", fontSize: 12 }}
                 >

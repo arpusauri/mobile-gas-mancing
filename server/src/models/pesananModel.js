@@ -148,7 +148,7 @@ class PesananModel {
 
       const currentStatus = rows[0].status_pesanan;
 
-      if (currentStatus !== "Menunggu Pembayaran") {
+      if (currentStatus.toLowerCase() !== "menunggu pembayaran") {
         return {
           success: false,
           message: `Pesanan berstatus ${currentStatus} tidak dapat dibatalkan.`,
@@ -177,6 +177,75 @@ class PesananModel {
     } catch (error) {
       console.error("Error in cancelOrder:", error);
       throw error;
+    }
+  }
+
+  static async create(pesananData, items) {
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // 1. Insert ke tabel 'pemesanan'
+      const [orderResult] = await connection.query(
+        `INSERT INTO pemesanan 
+      (id_pengguna, id_tempat, nomor_pesanan, tgl_mulai_sewa, total_biaya, status_pesanan, num_people, durasi_sewa_jam) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          pesananData.id_pengguna,
+          pesananData.id_tempat,
+          pesananData.nomor_pesanan,
+          pesananData.tanggal_mulai,
+          pesananData.total_harga,
+          "Menunggu Pembayaran",
+          pesananData.jumlah_orang,
+          pesananData.durasi_sewa_jam,
+        ]
+      );
+
+      const newOrderId = orderResult.insertId;
+
+      // 1.5 Insert ke tabel 'pembayaran'
+      const kodeBayar = `PAY-${Date.now()}`;
+      await connection.query(
+        `INSERT INTO pembayaran 
+        (id_pesanan, kode_bayar, payment_method, jumlah_bayar, status_pembayaran, tgl_pembayaran) 
+        VALUES (?, ?, ?, ?, ?, NOW())`,
+        [
+          newOrderId,
+          `PAY-${Date.now()}`,
+          pesananData.metode_pembayaran, // Ini mengambil dari payload yang kita tambahkan di atas
+          pesananData.total_harga,
+          "Pending",
+        ]
+      );
+
+      // 2. Insert ke tabel 'detail_pemesanan_item' jika ada item
+      if (items && items.length > 0) {
+        const itemQueries = items.map((item) => {
+          return connection.query(
+            `INSERT INTO detail_pemesanan_item 
+          (id_pesanan, id_item, kuantitas, harga_satuan_saat_pesan, subtotal) 
+          VALUES (?, ?, ?, ?, ?)`,
+            [
+              newOrderId,
+              item.id_item,
+              item.kuantitas,
+              item.harga_satuan_saat_pesan,
+              item.subtotal,
+            ]
+          );
+        });
+        await Promise.all(itemQueries);
+      }
+
+      await connection.commit();
+      return newOrderId;
+    } catch (error) {
+      await connection.rollback();
+      console.error("Error in PesananModel.create:", error);
+      throw error;
+    } finally {
+      connection.release();
     }
   }
 }

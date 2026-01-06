@@ -58,6 +58,8 @@ exports.getAllPesananByUserId = async (req, res) => {
 exports.createPesanan = async (req, res) => {
   try {
     const userId = getUserIdFromAuth(req);
+
+    // 1. Ambil SEMUA data dari req.body
     const {
       id_tempat,
       tanggal_mulai,
@@ -65,56 +67,55 @@ exports.createPesanan = async (req, res) => {
       jumlah_orang,
       total_harga,
       items,
+      nomor_pesanan,
+      durasi_sewa_jam,
+      metode_pembayaran, // <-- Tambahkan ini agar tidak ReferenceError
     } = req.body;
 
-    // Validasi dasar
-    if (
-      !id_tempat ||
-      !tanggal_mulai ||
-      !tanggal_selesai ||
-      !total_harga ||
-      !items ||
-      items.length === 0
-    ) {
+    // 2. Validasi (Opsional: pastikan metode_pembayaran ada isinya)
+    if (!id_tempat || !tanggal_mulai || !metode_pembayaran) {
       return res
         .status(400)
-        .json({ success: false, error: "Data pesanan tidak lengkap." });
+        .json({
+          success: false,
+          error: "Data pesanan/pembayaran tidak lengkap.",
+        });
     }
 
+    // 3. Susun objek pesananData untuk dikirim ke Model
     const pesananData = {
       id_pengguna: userId,
       id_tempat,
+      nomor_pesanan,
       tanggal_mulai,
       tanggal_selesai,
-      jumlah_orang: jumlah_orang || 1, // Default 1 orang
+      jumlah_orang: jumlah_orang || 1,
       total_harga,
+      durasi_sewa_jam,
+      metode_pembayaran, // <-- Sekarang variabel ini sudah aman digunakan
     };
 
-    // Panggil model untuk membuat pesanan dan item-nya (dalam transaksi)
+    // 4. Panggil model
     const newPesananId = await PesananModel.create(pesananData, items);
 
     res.status(201).json({
       success: true,
-      message: "Pesanan berhasil dibuat. Menunggu Pembayaran.",
+      message: "Pesanan berhasil dibuat.",
       id_pesanan: newPesananId,
     });
   } catch (error) {
     console.error("Error in createPesanan:", error);
     if (error.message.includes("terautentikasi")) {
-      return res
-        .status(401)
-        .json({
-          success: false,
-          error: "Akses ditolak. Pengguna harus login.",
-        });
-    }
-    res
-      .status(500)
-      .json({
+      return res.status(401).json({
         success: false,
-        error: "Gagal membuat pesanan. Kesalahan server internal.",
-        details: error.message,
+        error: "Akses ditolak. Pengguna harus login.",
       });
+    }
+    res.status(500).json({
+      success: false,
+      error: "Gagal membuat pesanan. Kesalahan server internal.",
+      details: error.message,
+    });
   }
 };
 

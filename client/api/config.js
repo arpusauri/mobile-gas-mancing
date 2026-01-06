@@ -87,7 +87,6 @@ export const api = {
         headers: { Authorization: `Bearer ${token}` },
       }),
 
-    // Pastikan yang lain juga konsisten jika Anda ingin menggunakan pesananRoutes
     getById: (id, token) =>
       apiCall(`/api/pesanan/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -97,6 +96,16 @@ export const api = {
       apiCall(`/api/pesanan/cancel/${id}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
+      }),
+
+    create: (data, token) =>
+      apiCall("/api/pesanan/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
       }),
   },
 
