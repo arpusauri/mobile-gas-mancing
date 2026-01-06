@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     position: 'absolute',
-    bottom: 65,
+    bottom: 50,
     right: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
