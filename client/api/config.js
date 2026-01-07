@@ -56,64 +56,37 @@ export const api = {
 // ... kode sebelumnya ...
 
 places: {
-  getAll: () => apiCall("/api/places"),
-  getById: (id) => apiCall(`/api/places/${id}`),
-  getByMitraId: (mitraId, token) => 
-    apiCall(`/api/places/mitra/${mitraId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }),
-  
-  create: (formData, token) =>
-    apiCall("/api/places", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData, 
-    }),
-  
-  // --- PERBAIKAN DI SINI ---
-  update: (id, data, token) =>
-    apiCall(`/api/places/${id}`, {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${token}` },
-      // Cek: Kalau dia FormData, JANGAN di-stringify. Kalau JSON biasa, baru stringify.
-      body: data instanceof FormData ? data : JSON.stringify(data),
-    }),
-  // -------------------------
-  
-  delete: (id, token) =>
-    apiCall(`/api/places/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    }),
+    getAll: () => apiCall("/api/places"),
+    getById: (id) => apiCall(`/api/places/${id}`),
     
-  search: (location = "", priceMin = "", priceMax = "", facilities = "") => {
-    const params = new URLSearchParams();
-    if (location) params.append("location", location);
-    if (priceMin) params.append("priceMin", priceMin);
-    if (priceMax) params.append("priceMax", priceMax);
-    if (facilities) params.append("facilities", facilities);
+    getByMitraId: (mitraId, token) => 
+      apiCall(`/api/places/mitra/${mitraId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }), // <--- JANGAN LUPA KOMA INI
 
-    // ✅ TAMBAHKAN INI (method create):
     create: (formData, token) =>
       apiCall("/api/places", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
-        body: formData, // FormData dengan image
-      }),
+        body: formData, 
+      }), // <--- JANGAN LUPA KOMA INI
 
+    // --- FUNGSI UPDATE YANG BENAR ---
     update: (id, data, token) =>
       apiCall(`/api/places/${id}`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
-        body: JSON.stringify(data),
-      }),
+        // Cek apakah data adalah FormData atau JSON biasa
+        body: data instanceof FormData ? data : JSON.stringify(data),
+      }), // <--- JANGAN LUPA KOMA INI
+    // -------------------------------
 
     delete: (id, token) =>
       apiCall(`/api/places/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
-      }),
-
+      }), // <--- JANGAN LUPA KOMA INI
+      
     search: (location = "", priceMin = "", priceMax = "", facilities = "") => {
       const params = new URLSearchParams();
       if (location) params.append("location", location);
@@ -124,8 +97,6 @@ places: {
       return apiCall(`/api/places/search?${params.toString()}`);
     },
   },
-},
-
 // ... kode sisanya ...
   itemSewa: {
     getAll: () => apiCall("/api/item_sewa"),
