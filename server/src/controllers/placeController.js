@@ -108,14 +108,31 @@ exports.createPlace = async (req, res) => {
 
     console.log("🛠️  Parsed Items:", itemsParsed);
 
-    // 4. Handle Fasilitas
+    // 4. Handle Fasilitas (Convert nama ke ID)
     let fasilitasParsed = [];
     if (data.fasilitas) {
       try {
-        fasilitasParsed = typeof data.fasilitas === 'string' 
+        const fasilitasNama = typeof data.fasilitas === 'string' 
           ? JSON.parse(data.fasilitas) 
           : data.fasilitas;
+        
+        // Mapping nama fasilitas ke ID (sesuai database)
+        const fasilitasMap = {
+          'Toilet': 1,
+          'Musholla': 2,
+          'Parkiran': 3,
+          'Kantin': 4,
+          'Wifi': 5
+        };
+        
+        // Convert nama ke ID
+        fasilitasParsed = fasilitasNama
+          .map(nama => fasilitasMap[nama])
+          .filter(id => id !== undefined); // Remove undefined values
+        
+        console.log("🏢 Fasilitas converted:", fasilitasNama, "=>", fasilitasParsed);
       } catch (e) { 
+        console.error("Error parsing fasilitas:", e);
         fasilitasParsed = []; 
       }
     }

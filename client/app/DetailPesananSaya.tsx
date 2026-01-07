@@ -8,6 +8,8 @@ import {
   Image,
   TouchableOpacity,
   Alert,
+  Modal,
+  TextInput,
 } from "react-native";
 import { useLocalSearchParams, Stack, router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -19,6 +21,10 @@ export default function DetailPesananSaya() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [pesanan, setPesanan] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -85,25 +91,24 @@ export default function DetailPesananSaya() {
       ? `${API_URL}/uploads/${pesanan.image_url.trim()}`
       : "https://via.placeholder.com/600x400";
 
-  const tanggal =
-    pesanan?.tgl_mulai_sewa || pesanan?.tanggal_mulai
-      ? new Date(
-          pesanan?.tgl_mulai_sewa || pesanan?.tanggal_mulai
-        ).toLocaleDateString("id-ID", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        })
-      : "N/A";
+  const tanggal = pesanan?.tgl_mulai_sewa || pesanan?.tanggal_mulai
+    ? new Date(pesanan?.tgl_mulai_sewa || pesanan?.tanggal_mulai).toLocaleDateString("id-ID")
+    : "N/A";
 
   const items = pesanan?.item_sewa || pesanan?.items || [];
   const status = pesanan?.status_pesanan || pesanan?.status || "pending";
   const paymentMethod =
     pesanan?.metode_pembayaran || pesanan?.payment_method || "N/A";
 
-  // ===== GET STATUS UI =====
+  // ===== GET STATUS UI (DIPERBARUI DENGAN STATUS SELESAI) =====
   const getStatusUI = () => {
     switch (status?.toLowerCase()) {
+      case "selesai": // ✅ TAMBAHAN STATUS SELESAI
+        return {
+          backgroundColor: "#102A63", // Biru Dongker
+          textColor: "#FFF",
+          label: "Selesai",
+        };
       case "lunas":
         return {
           backgroundColor: "#4ADE80",
@@ -126,6 +131,40 @@ export default function DetailPesananSaya() {
   };
 
   const ui = getStatusUI();
+
+  const handleSubmitReview = async () => {
+    if (rating === 0) {
+      Alert.alert("Beri Rating", "Silakan Pilih Bintang");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const userToken = await AsyncStorage.getItem("userToken");
+
+      if (!userToken) {
+        Alert.alert("Error", "Sesi login berakhir. Silakan login ulang.");
+        return;
+      }
+
+      const payload = {
+        id_tempat: pesanan?.id_tempat,
+        id_booking: id,
+        rating: rating,
+        ulasan: comment,
+        token: userToken
+      };
+      await api.review.create(payload); 
+      Alert.alert("Berhasil", "Terima kasih ulasannya!");
+      setModalVisible(false);
+      setRating(0);
+      setComment("");
+    } catch (err) {
+      console.error("Review Error:", err);
+      Alert.alert("Gagal", "Gagal kirim ulasan.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -263,8 +302,72 @@ export default function DetailPesananSaya() {
               })
             )}
           </ScrollView>
+
+          {/* ✅ TAMBAHAN SECTION ULASAN */}
+          <View style={styles.divider} />
+
+          {status?.toLowerCase() === "selesai" ? (
+            <TouchableOpacity 
+              style={styles.btnUlasan}
+              onPress={() => setModalVisible(true)}
+            >
+              <Ionicons name="star" size={20} color="white" />
+              <Text style={styles.btnUlasanText}>Tulis Ulasan Pengalaman</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.infoUlasanBox}>
+              <Ionicons name="information-circle-outline" size={18} color="#94A3B8" />
+              <Text style={styles.infoUlasanText}>
+                Ulasan dapat diberikan setelah pesanan Selesai.
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
+
+      {/* --- TEMPEL MODAL DI SINI --- */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Beri Ulasan</Text>
+            <Text style={styles.modalQuestion}>Bagaimana pengalaman Anda?</Text>
+            
+            <View style={styles.starsRow}>
+              {[1, 2, 3, 4, 5].map((s) => (
+                <TouchableOpacity key={s} onPress={() => setRating(s)}>
+                  <Ionicons 
+                    name={s <= rating ? "star" : "star-outline"} 
+                    size={35} 
+                    color={s <= rating ? "#FACC15" : "#CCC"}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              style={styles.textInputUlasan}
+              multiline
+              placeholder="Ceritakan pengalaman Anda..."
+              value={comment}
+              onChangeText={setComment}
+            />
+
+            <View style={styles.modalButtonRow}>
+              <TouchableOpacity style={styles.btnBatalModal} onPress={() => setModalVisible(false)}>
+                <Text>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.btnKirimModal} onPress={handleSubmitReview} disabled={submitting}>
+                <Text style={{color: 'white', fontWeight: 'bold'}}>Kirim Ulasan</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -309,6 +412,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 35,
     marginTop: -40,
     padding: 20,
+    paddingBottom: 40, // Ditambah sedikit padding bawah
     flex: 1,
   },
   paymentHeader: {
@@ -349,4 +453,72 @@ const styles = StyleSheet.create({
   itemLabel: { paddingVertical: 8, alignItems: "center" },
   itemText: { fontSize: 12, fontWeight: "bold", color: "#102A63" },
   itemSubText: { fontSize: 11, color: "#475569", marginTop: 2 },
+  // ✅ STYLES BARU UNTUK ULASAN
+  btnUlasan: {
+    backgroundColor: "#102A63", // Biru Dongker
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 15,
+    borderRadius: 15,
+    marginTop: 10,
+    elevation: 2,
+  },
+  btnUlasanText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+    marginLeft: 10,
+  },
+  infoUlasanBox: {
+    flexDirection: "row",
+    backgroundColor: "#F8FAFC",
+    padding: 15,
+    borderRadius: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  infoUlasanText: {
+    color: "#64748B",
+    fontSize: 13,
+    marginLeft: 8,
+    fontStyle: "italic",
+  },
+
+  modalOverlay: { 
+    flex: 1, 
+    backgroundColor: 'rgba(0,0,0,0.5)', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 20 
+  },
+  modalContent: { 
+    width: '100%', 
+    backgroundColor: 'white', 
+    borderRadius: 20, 
+    padding: 25, 
+    alignItems: 'center' 
+  },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#102A63', marginBottom: 20 },
+  modalQuestion: { fontSize: 16, marginBottom: 15 },
+  starsRow: { flexDirection: 'row', marginBottom: 20 },
+  textInputUlasan: { 
+    width: '100%', 
+    borderWidth: 1, 
+    borderColor: '#DDD', 
+    borderRadius: 12, 
+    padding: 12, 
+    height: 100, 
+    textAlignVertical: 'top' 
+  },
+  modalButtonRow: { flexDirection: 'row', marginTop: 20, gap: 40 },
+  btnBatalModal: { flex: 1, paddingVertical: 12, alignItems: 'center' },
+  btnKirimModal: { 
+    flex: 5, 
+    backgroundColor: '#102A63', 
+    paddingVertical: 12,
+    borderRadius: 12, 
+    alignItems: 'center' 
+  },
 });

@@ -8,9 +8,9 @@ if (__DEV__) {
   if (isWeb) {
     API_URL = "http://localhost:3000";
   } else if (Platform.OS === "android") {
-    API_URL = "http://10.0.2.2:3000";
+    API_URL = "http://192.168.1.3:3000";
   } else {
-    API_URL = "http://192.168.1.100:3000"; // Ganti dengan IP lokal kamu
+    API_URL = "http://192.168.1.3:3000"; // Ganti dengan IP lokal kamu
   }
 } else {
   API_URL = "https://your-production-api.com";
@@ -154,9 +154,10 @@ export const api = {
   review: {
     getAll: () => apiCall("/api/review"),
     getByPlaceId: (placeId) => apiCall(`/api/review/place/${placeId}`),
-    create: (data) =>
+    create: (data, token) =>
       apiCall("/api/review", {
         method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
         body: JSON.stringify(data),
       }),
   },

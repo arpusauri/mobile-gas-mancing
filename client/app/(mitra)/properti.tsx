@@ -119,7 +119,7 @@ export default function TambahKolam() {
       formData.append('location', alamat);
       formData.append('base_price', harga);
       formData.append('price_unit', satuan);
-      formData.append('description', deskripsi);
+      formData.append('description', deskripsi || 'Tempat pemancingan yang nyaman');
       formData.append('jam_buka', jamBuka);
       formData.append('jam_tutup', jamTutup);
       formData.append('mitra_id', mitraId.toString());
@@ -132,12 +132,12 @@ export default function TambahKolam() {
       
       // Items (format yang diharapkan backend)
       if (extraItems.length > 0) {
-        // Backend expect format: items[0][nama_item], items[0][price], etc
         extraItems.forEach((item, index) => {
           if (item.name && item.price) {
             formData.append(`items[${index}][nama_item]`, item.name);
             formData.append(`items[${index}][price]`, item.price);
             formData.append(`items[${index}][price_unit]`, item.unit);
+            formData.append(`items[${index}][tipe_item]`, item.type.toLowerCase());
             
             // Image untuk item (jika ada)
             if (item.image) {
@@ -154,15 +154,49 @@ export default function TambahKolam() {
 
       console.log('✅ Property created:', result);
 
-      Alert.alert('Berhasil!', 'Properti kolam berhasil ditambahkan!', [
-        {
-          text: 'OK',
-          onPress: () => router.back(), // Kembali ke tab Properti
-        },
-      ]);
+      // Reset form
+      setNamaTempat('');
+      setMainPhoto(null);
+      setHarga('');
+      setSatuan('Jam');
+      setAlamat('');
+      setDeskripsi('');
+      setJamBuka('08:00');
+      setJamTutup('20:00');
+      setFacilities([]);
+      setExtraItems([]);
+
+      // Show success & redirect ke Dashboard
+      Alert.alert(
+        '🎉 Berhasil!', 
+        'Properti kolam berhasil ditambahkan! Anda akan dialihkan ke Dashboard.', 
+        [
+          {
+            text: 'Lihat Dashboard',
+            onPress: () => {
+              // Navigate ke tab dashboard
+              router.push('/(mitra)/dashboard');
+            }
+          }
+        ]
+      );
     } catch (error: any) {
       console.error('❌ Error creating property:', error);
-      Alert.alert('Error', error.message || 'Gagal menambahkan properti');
+      
+      // Better error message
+      let errorMessage = 'Gagal menambahkan properti';
+      
+      if (error.message) {
+        if (error.message.includes('NaN')) {
+          errorMessage = 'Terjadi kesalahan data. Pastikan semua harga diisi dengan angka yang valid.';
+        } else if (error.message.includes('duplicate')) {
+          errorMessage = 'Nama properti sudah ada. Gunakan nama yang berbeda.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }

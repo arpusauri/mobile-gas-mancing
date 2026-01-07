@@ -9,7 +9,9 @@ import {
   StatusBar,
   SafeAreaView,
   Image,
+  Alert,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ✅ 1. Import useRouter
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -89,6 +91,41 @@ export default function HomeScreen() {
       pathname: "/Detail",
       params: { id: id }, // Kirim ID tempat
     });
+  };
+
+  // ✅ Fungsi Daftar Mitra (dengan logout)
+  const handleDaftarMitra = async () => {
+    Alert.alert(
+      'Daftar Sebagai Mitra',
+      'Untuk mendaftar sebagai mitra, Anda perlu membuat akun baru terpisah. Anda akan logout dari akun customer ini. Lanjutkan?',
+      [
+        { 
+          text: 'Batal', 
+          style: 'cancel' 
+        },
+        {
+          text: 'Lanjutkan',
+          onPress: async () => {
+            try {
+              // Logout dari customer
+              await AsyncStorage.removeItem('userToken');
+              await AsyncStorage.removeItem('token');
+              await AsyncStorage.removeItem('userData');
+              await AsyncStorage.removeItem('userRole');
+              await AsyncStorage.removeItem('userId');
+              
+              console.log('✅ Logged out, redirecting to FormMitra');
+              
+              // Redirect ke FormMitra
+              router.replace('/FormMitra');
+            } catch (error) {
+              console.error('Error during logout:', error);
+              Alert.alert('Error', 'Gagal logout. Silakan coba lagi.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -233,22 +270,23 @@ export default function HomeScreen() {
               ))}
             </ScrollView>
 
-            {/* BANNER */}
+            {/* BANNER DAFTAR MITRA */}
             <View style={styles.bannerBox}>
-              <Text style={styles.bannerTitle}>Daftarkan Properti Anda!</Text>
+              <View style={styles.bannerIconCircle}>
+                <Ionicons name="business" size={28} color="#133E87" />
+              </View>
+              <Text style={styles.bannerTitle}>Punya Kolam Pemancingan?</Text>
               <Text style={styles.bannerDesc}>
-                Bergabunglah menjadi mitra kami.
+                Daftarkan properti Anda dan dapatkan penghasilan tambahan sebagai mitra kami!
               </Text>
               <TouchableOpacity
                 style={styles.bannerBtn}
-                // ✅ 5. Pasang OnPress ke Mitra
-                onPress={() => router.push("/Mitra")}
+                onPress={handleDaftarMitra}
               >
-                <Text
-                  style={{ color: "white", fontWeight: "bold", fontSize: 12 }}
-                >
-                  Gabung Sekarang
+                <Text style={styles.bannerBtnText}>
+                  Daftar Sebagai Mitra
                 </Text>
+                <Ionicons name="arrow-forward" size={14} color="white" />
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -354,17 +392,56 @@ const styles = StyleSheet.create({
   bannerBox: {
     backgroundColor: "white",
     margin: 20,
-    borderRadius: 15,
-    padding: 20,
-    alignItems: "flex-start",
+    marginTop: 30,
+    borderRadius: 20,
+    padding: 25,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  bannerTitle: { fontWeight: "bold", fontSize: 16, marginBottom: 5 },
-  bannerDesc: { fontSize: 12, color: "#444", marginBottom: 15 },
+  bannerIconCircle: {
+    width: 60,
+    height: 60,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  bannerTitle: { 
+    fontWeight: "bold", 
+    fontSize: 18, 
+    marginBottom: 8,
+    color: "#102A63",
+    textAlign: "center",
+  },
+  bannerDesc: { 
+    fontSize: 13, 
+    color: "#666", 
+    marginBottom: 20,
+    textAlign: "center",
+    lineHeight: 20,
+  },
   bannerBtn: {
     backgroundColor: "#133E87",
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    alignSelf: "flex-end",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    shadowColor: "#133E87",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  bannerBtnText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 14,
   },
 });
