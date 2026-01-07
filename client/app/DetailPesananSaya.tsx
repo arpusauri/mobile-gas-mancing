@@ -68,53 +68,6 @@ export default function DetailPesananSaya() {
     year: "numeric",
   });
 
-  // const handleBatalPesanan = async () => {
-  //   console.log("Batal ditekan!"); // debug
-  //   Alert.alert(
-  //     "Batalkan Pesanan",
-  //     "Apakah kamu yakin ingin membatalkan pesanan ini?",
-  //     [
-  //       { text: "Tidak", style: "cancel" },
-  //       {
-  //         text: "Ya, Batalkan",
-  //         style: "destructive",
-  //         onPress: async () => {
-  //           try {
-  //             const token = await AsyncStorage.getItem("token");
-  //             if (!token) {
-  //               Alert.alert("Error", "Token tidak ditemukan");
-  //               return;
-  //             }
-
-  //             // Debug id
-  //             console.log("ID yang dikirim ke API cancel:", id_pesanan);
-
-  //             // Panggil API cancel
-  //             const res = await api.booking.cancel(id_pesanan, token);
-  //             console.log("Response cancel:", res);
-
-  //             if (res && res.success) {
-  //               Alert.alert("Berhasil", "Pesanan berhasil dibatalkan");
-  //               router.replace("/PesananSaya");
-  //             } else {
-  //               Alert.alert(
-  //                 "Gagal",
-  //                 res?.message || "Tidak bisa membatalkan pesanan"
-  //               );
-  //             }
-  //           } catch (err) {
-  //             console.error(err);
-  //             Alert.alert(
-  //               "Gagal",
-  //               "Terjadi kesalahan saat membatalkan pesanan"
-  //             );
-  //           }
-  //         },
-  //       },
-  //     ]
-  //   );
-  // };
-
   const getStatusUI = () => {
     switch (status_pesanan?.toLowerCase()) {
       case "lunas":
@@ -279,16 +232,6 @@ export default function DetailPesananSaya() {
         </View>
       </ScrollView>
 
-      {/* <View style={styles.footer}>
-        {status_pesanan?.toLowerCase() === "menunggu pembayaran" && (
-          <TouchableOpacity
-            style={styles.btnBatal}
-            onPress={handleBatalPesanan}
-          >
-            <Text style={styles.btnBatalText}>Batal</Text>
-          </TouchableOpacity>
-        )}
-      </View> */}
     </View>
   );
 }
