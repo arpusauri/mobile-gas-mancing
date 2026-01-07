@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   tipsDesc: { fontSize: 11, color: "#666", lineHeight: 16 },
 
   bannerBox: {
-    backgroundColor: "#D9D9D9",
+    backgroundColor: "white",
     margin: 20,
     borderRadius: 15,
     padding: 20,

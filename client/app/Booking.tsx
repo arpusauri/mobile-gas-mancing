@@ -177,7 +177,7 @@ export default function BookingScreen() {
             <CustomHeader
               title="Booking"
               transparent={true}
-              textColor="white" 
+              textColor="white"
               backButtonStyle={{
                 backgroundColor: "rgba(0,0,0,0.4)",
                 width: 40,

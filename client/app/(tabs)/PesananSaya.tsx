@@ -19,15 +19,14 @@ import CustomHeader from "@/components/CustomHeader";
 type StatusPesanan = "Lunas" | "Menunggu" | "Dibatalkan";
 
 type Pesanan = {
-  id_pesanan: string; // ← INI UNTUK API
-  nomor_pesanan: string; // ← INI UNTUK DISPLAY
+  id_pesanan: string;
+  nomor_pesanan: string;
   title: string;
   location: string;
   price: number;
   status: StatusPesanan;
   image: string;
 };
-
 
 export default function PesananSayaScreen() {
   const router = useRouter();
@@ -41,21 +40,16 @@ export default function PesananSayaScreen() {
       setLoading(true);
 
       const token = await AsyncStorage.getItem("token");
-      // userId tidak lagi dibutuhkan untuk parameter fungsi API
-      // const userId = await AsyncStorage.getItem("userId");
 
       if (!token) {
         setOrders([]);
         return;
       }
 
-      // PANGGIL FUNGSI BARU (Hanya butuh token)
       const result = await api.booking.getByUserId(token);
 
       console.log("DATA PESANAN DARI SERVER:", result);
 
-      // result dari apiCall biasanya sudah mengeluarkan '.data'
-      // Jadi kita pastikan result itu sendiri adalah array
       const list = Array.isArray(result) ? result : [];
 
       const mappedOrders: Pesanan[] = list.map((item: any) => ({
@@ -63,13 +57,8 @@ export default function PesananSayaScreen() {
         nomor_pesanan: item.nomor_pesanan || item.id_pesanan,
         title: item.place_name || "-",
         location: item.place_location || "-",
-
-        // GUNAKAN 'item.total_harga' (sesuai return backend)
         price: Number(item.total_harga || 0),
-
-        // GUNAKAN 'item.status' (karena di model backend: status: order.status_pesanan)
         status: item.status || "Menunggu Pembayaran",
-
         image: item.place_image
           ? `${API_URL}/uploads/${item.place_image.trim()}`
           : "https://via.placeholder.com/400",
@@ -93,7 +82,7 @@ export default function PesananSayaScreen() {
     switch (status) {
       case "Lunas":
         return "#4ADE80";
-      case "Menunggu Pembayaran": // Sesuaikan dengan teks dari DB
+      case "Menunggu Pembayaran":
         return "#FACC15";
       case "Dibatalkan":
         return "#EF4444";
@@ -107,12 +96,10 @@ export default function PesananSayaScreen() {
     let confirmCancel = false;
 
     if (Platform.OS === "web") {
-      // Web: gunakan window.confirm
       confirmCancel = window.confirm(
         "Apakah Anda yakin ingin membatalkan pesanan ini?"
       );
     } else {
-      // Android/iOS: gunakan Alert.alert
       confirmCancel = await new Promise((resolve) => {
         Alert.alert(
           "Batalkan Pesanan?",
@@ -131,7 +118,6 @@ export default function PesananSayaScreen() {
 
     if (!confirmCancel) return;
 
-    // Panggil API cancel
     try {
       const token = await AsyncStorage.getItem("token");
       if (!token) return;
@@ -139,7 +125,6 @@ export default function PesananSayaScreen() {
       const res = await api.booking.cancel(id, token);
       console.log("Cancel Result:", res);
 
-      // Re-fetch data terbaru dari server
       await fetchPesanan();
 
       if (Platform.OS !== "web") {
@@ -149,7 +134,6 @@ export default function PesananSayaScreen() {
       Alert.alert("Error", error.message || "Gagal membatalkan pesanan");
     }
   };
-
 
   /* ================= LOADING ================= */
   if (loading) {
@@ -162,7 +146,8 @@ export default function PesananSayaScreen() {
 
   return (
     <View style={styles.mainContainer}>
-      <CustomHeader title="Pesanan Saya" showCart />
+      {/* ✅ showBackButton={false} untuk hide tombol kembali */}
+      <CustomHeader title="Pesanan Saya" showCart showBackButton={false} />
 
       {orders.length === 0 ? (
         <View style={{ alignItems: "center", marginTop: 40 }}>
@@ -214,7 +199,7 @@ export default function PesananSayaScreen() {
                       onPress={() =>
                         router.push({
                           pathname: "/DetailPesananSaya",
-                          params: { id: item.id_pesanan},
+                          params: { id: item.id_pesanan },
                         })
                       }
                     >

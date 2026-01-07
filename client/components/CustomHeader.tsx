@@ -17,6 +17,7 @@ interface CustomHeaderProps {
   backButtonStyle?: ViewStyle; // style tombol kembali
   backIconColor?: string; // warna arrow
   showCart?: boolean;
+  showBackButton?: boolean; // ✅ BARU: untuk show/hide tombol kembali
 }
 
 export default function CustomHeader({
@@ -26,6 +27,7 @@ export default function CustomHeader({
   backButtonStyle,
   backIconColor = "#000",
   showCart = false,
+  showBackButton = true, // ✅ DEFAULT true agar tidak break komponen lain
 }: CustomHeaderProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -43,17 +45,15 @@ export default function CustomHeader({
         },
       ]}
     >
-      {/* Tombol Kembali */}
-      <TouchableOpacity
-        style={[
-          styles.backButton,
-          { top: insets.top + 8 },
-          backButtonStyle, // style dari props
-        ]}
-        onPress={() => router.back()}
-      >
-        <Ionicons name="arrow-back" size={24} color={backIconColor} />
-      </TouchableOpacity>
+      {/* Tombol Kembali - Hanya tampil jika showBackButton = true */}
+      {showBackButton && (
+        <TouchableOpacity
+          style={[styles.backButton, { top: insets.top + 8 }, backButtonStyle]}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color={backIconColor} />
+        </TouchableOpacity>
+      )}
 
       {/* Judul Tengah */}
       <View style={styles.titleContainer}>
@@ -66,12 +66,7 @@ export default function CustomHeader({
               style={{ marginRight: 8 }}
             />
           )}
-          <Text
-            style={[
-              styles.headerTitleText,
-              { color: textColor }, // warna judul dari props
-            ]}
-          >
+          <Text style={[styles.headerTitleText, { color: textColor }]}>
             {title}
           </Text>
         </View>
