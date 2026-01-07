@@ -93,7 +93,36 @@ places: {
     if (priceMax) params.append("priceMax", priceMax);
     if (facilities) params.append("facilities", facilities);
 
-    return apiCall(`/api/places/search?${params.toString()}`);
+    // ✅ TAMBAHKAN INI (method create):
+    create: (formData, token) =>
+      apiCall("/api/places", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData, // FormData dengan image
+      }),
+
+    update: (id, data, token) =>
+      apiCall(`/api/places/${id}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify(data),
+      }),
+
+    delete: (id, token) =>
+      apiCall(`/api/places/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
+    search: (location = "", priceMin = "", priceMax = "", facilities = "") => {
+      const params = new URLSearchParams();
+      if (location) params.append("location", location);
+      if (priceMin) params.append("priceMin", priceMin);
+      if (priceMax) params.append("priceMax", priceMax);
+      if (facilities) params.append("facilities", facilities);
+
+      return apiCall(`/api/places/search?${params.toString()}`);
+    },
   },
 },
 
@@ -160,9 +189,10 @@ places: {
   review: {
     getAll: () => apiCall("/api/review"),
     getByPlaceId: (placeId) => apiCall(`/api/review/place/${placeId}`),
-    create: (data) =>
+    create: (data, token) =>
       apiCall("/api/review", {
         method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
         body: JSON.stringify(data),
       }),
   },
@@ -234,7 +264,10 @@ places: {
     updateBookingStatus: (id, status, token) =>
       apiCall(`/api/mitra/property/bookings/${id}/status`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json", // ⚡ wajib disini
+        },
         body: JSON.stringify({ status }),
       }),
 

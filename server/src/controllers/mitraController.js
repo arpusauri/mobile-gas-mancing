@@ -282,11 +282,22 @@ exports.getPropertyBookings = async (req, res) => {
 exports.updatePropertyBookingStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+
+    const { status } = req.body || {};
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: "Data status tidak diterima oleh server (req.body kosong).",
+      });
+    }
+
     const isUpdated = await MitraModel.updatePropertyBookingStatus(id, status);
 
     if (!isUpdated) {
-      return res.status(404).json({ success: false, message: "Pesanan tidak ditemukan." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Pesanan tidak ditemukan." });
     }
 
     res.json({ success: true, message: "Status pesanan berhasil diperbarui." });
