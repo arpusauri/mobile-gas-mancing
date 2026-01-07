@@ -1,90 +1,113 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Platform 
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ViewStyle,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface CustomHeaderProps {
   title: string;
   transparent?: boolean;
+  textColor?: string; // warna teks judul
+  backButtonStyle?: ViewStyle; // style tombol kembali
+  backIconColor?: string; // warna arrow
   showCart?: boolean;
 }
 
-export default function CustomHeader({ title, transparent = false, showCart = false }: CustomHeaderProps) {
+export default function CustomHeader({
+  title,
+  transparent = false,
+  textColor = "#000",
+  backButtonStyle,
+  backIconColor = "#000",
+  showCart = false,
+}: CustomHeaderProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[
-      styles.headerTopBar, 
-      { 
-        height: insets.top + 60, // Sesuai kode andalan Abang
-        paddingTop: insets.top, 
-        backgroundColor: transparent ? 'transparent' : 'white',
-        borderBottomWidth: transparent ? 0 : 1,
-        borderBottomColor: '#F1F5F9',
-      }
-    ]}>
-      
-      {/* Tombol Back Absolute */}
-      <TouchableOpacity 
-        style={[styles.backButton, { top: insets.top + 8 }]} 
+    <View
+      style={[
+        styles.headerTopBar,
+        {
+          height: insets.top + 60,
+          paddingTop: insets.top,
+          backgroundColor: transparent ? "transparent" : "white",
+          borderBottomWidth: transparent ? 0 : 1,
+          borderBottomColor: "#F1F5F9",
+        },
+      ]}
+    >
+      {/* Tombol Kembali */}
+      <TouchableOpacity
+        style={[
+          styles.backButton,
+          { top: insets.top + 8 },
+          backButtonStyle, // style dari props
+        ]}
         onPress={() => router.back()}
       >
-        <Ionicons name="arrow-back" size={24} color="black" />
+        <Ionicons name="arrow-back" size={24} color={backIconColor} />
       </TouchableOpacity>
 
-      {/* Judul Center Sempurna dan Keranjang */}
+      {/* Judul Tengah */}
       <View style={styles.titleContainer}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {/* 🟢 Ikon keranjang cuma muncul kalau showCart dinilai TRUE */}
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
           {showCart && (
-            <Ionicons name="cart" size={22} color="#102A63" style={{ marginRight: 8 }} />
+            <Ionicons
+              name="cart"
+              size={22}
+              color="#102A63"
+              style={{ marginRight: 8 }}
+            />
           )}
-          <Text style={styles.headerTitleText}>{title}</Text>
+          <Text
+            style={[
+              styles.headerTitleText,
+              { color: textColor }, // warna judul dari props
+            ]}
+          >
+            {title}
+          </Text>
         </View>
       </View>
-
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   headerTopBar: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
     zIndex: 10,
   },
   backButton: {
-    position: 'absolute',
-    left: 15, 
+    position: "absolute",
+    left: 15,
     width: 40,
-    height: 45, // Menggunakan height 45 agar poros tengah luas
-    justifyContent: 'center',
-    alignItems: 'center',
+    height: 45,
+    justifyContent: "center",
+    alignItems: "center",
     zIndex: 20,
   },
   titleContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    // 🟢 SENTUHAN AKHIR: Naikkin tulisan 1-2 pixel biar poros B pas tengah panah
-    paddingBottom: 2, 
+    alignItems: "center",
+    justifyContent: "center",
+    paddingBottom: 2,
   },
   headerTitleText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-    textAlign: 'center',
-    includeFontPadding: false, // Wajib di Android
+    fontWeight: "bold",
+    textAlign: "center",
+    includeFontPadding: false,
   },
 });

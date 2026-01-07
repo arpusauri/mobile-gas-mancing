@@ -112,15 +112,16 @@ export default function PaymentScreen() {
               {[
                 {
                   name: "BRI",
-                  logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/BRI_Logo.svg/1200px-BRI_Logo.svg.png",
-                },
-                {
-                  name: "BNI",
-                  logo: "https://upload.wikimedia.org/wikipedia/id/thumb/5/55/BNI_logo.svg/1200px-BNI_logo.svg.png",
+                  logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/BANK_BRI_logo.svg/1280px-BANK_BRI_logo.svg.png",
                 },
                 {
                   name: "BCA",
                   logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Bank_Central_Asia.svg/1200px-Bank_Central_Asia.svg.png",
+                },
+                { 
+                  id: 'mandiri', 
+                  name: 'Mandiri', 
+                  logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/Bank_Mandiri_logo_2016.svg/1200px-Bank_Mandiri_logo_2016.svg.png' 
                 },
               ].map((bank) => (
                 <TouchableOpacity

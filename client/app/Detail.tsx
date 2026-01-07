@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FooterBPC from "../components/FooterBPC";
 
 import { API_URL, api } from "../api/config";
@@ -27,6 +28,7 @@ type Review = {
 };
 
 export default function DetailScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams();
 
@@ -112,7 +114,10 @@ export default function DetailScreen() {
               style={styles.gradientBottom}
             />
             <TouchableOpacity
-              style={styles.backButton}
+              style={[
+                styles.backButton,
+                { top: insets.top + 8 }, // <--- pakai safe area
+              ]}
               onPress={() => router.back()}
             >
               <Ionicons name="arrow-back" size={24} color="white" />
@@ -233,16 +238,16 @@ export default function DetailScreen() {
         </ScrollView>
 
         {/* FOOTER */}
-        <FooterBPC 
-            totalPrice={place.base_price} 
-            title="Harga Mulai"
-            buttonLabel="Pesan Sekarang"
-            onPress={() => 
-                router.push({
-                    pathname: "/Booking",
-                    params: { id: place.id_tempat },
-                })
-            }
+        <FooterBPC
+          totalPrice={place.base_price}
+          title="Harga Mulai"
+          buttonLabel="Pesan Sekarang"
+          onPress={() =>
+            router.push({
+              pathname: "/Booking",
+              params: { id: place.id_tempat },
+            })
+          }
         />
       </View>
     </GestureHandlerRootView>
@@ -272,7 +277,6 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: "absolute",
-    top: StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 40,
     left: 16,
     width: 40,
     height: 40,

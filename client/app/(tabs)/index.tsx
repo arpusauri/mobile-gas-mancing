@@ -12,7 +12,7 @@ import {
 } from "react-native";
 
 // ✅ 1. Import useRouter
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import SearchInput from "../../components/SearchInput";
@@ -37,11 +37,13 @@ interface Tip {
 }
 
 export default function HomeScreen() {
-  // ✅ 2. Inisialisasi Router
   const router = useRouter();
 
   const [popularSpots, setPopularSpots] = useState<PopularSpot[]>([]);
   const [tips, setTips] = useState<Tip[]>([]);
+
+  const params = useLocalSearchParams();
+  const idArtikel = params.id;
 
   const fetchPopularSpots = async () => {
     try {
@@ -208,6 +210,12 @@ export default function HomeScreen() {
                       alignItems: "center",
                       marginTop: 10,
                     }}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/DetailEnsiklopedia",
+                        params: { id: item.id_artikel },
+                      })
+                    }
                   >
                     <Text
                       style={{

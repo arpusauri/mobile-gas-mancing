@@ -7,6 +7,9 @@ import FooterBPC from "../components/FooterBPC";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "../api/config";
 
+// --- LOAD ASSET GAMBAR QRIS ---
+const QRIS_IMAGE = require("../assets/images/QRISRangga.jpg");
+
 export default function ConfirmationScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -85,10 +88,8 @@ export default function ConfirmationScreen() {
       console.log("BOOKING SUCCESS RESPONSE:", res);
 
       // 2. Logika Notifikasi & Redirect yang lebih kuat
-      // Gunakan setTimeout agar Alert tidak 'bentrok' dengan proses state loading
       setTimeout(() => {
         if (Platform.OS === "web") {
-          // Fallback untuk web jika Alert.alert tidak muncul
           window.alert("Pesanan berhasil dibuat!");
           router.replace("/PesananSaya");
         } else {
@@ -101,17 +102,14 @@ export default function ConfirmationScreen() {
                 onPress: () => router.replace("/PesananSaya"),
               },
             ],
-            { cancelable: false } // User harus klik tombol
+            { cancelable: false }
           );
         }
       }, 100);
     } catch (err: any) {
       console.error("Booking API Error:", err);
-
-      // Ambil pesan error detail dari response jika ada
       const errorMsg =
         err.response?.data?.error || err.message || "Gagal membuat pesanan.";
-
       Alert.alert("Gagal", errorMsg);
     } finally {
       setLoading(false);
@@ -219,6 +217,31 @@ export default function ConfirmationScreen() {
               <Text style={styles.emptyText}>Tidak Menyewa Peralatan</Text>
             </View>
           )}
+
+          {/* --- TAMPILAN QRIS INLINE --- */}
+          {bankName === "QRIS" && (
+            <View style={styles.qrSectionInline}>
+              <View style={styles.divider} />
+              <Text style={[styles.sectionTitle, { textAlign: 'center', marginBottom: 10 }]}>
+                Scan QRIS untuk Bayar
+              </Text>
+              
+              <View style={styles.qrContainerInline}>
+                <Image 
+                  source={QRIS_IMAGE} 
+                  style={{ width: '100%', height: '100%' }} 
+                  resizeMode="contain" 
+                />
+              </View>
+
+              <Text style={styles.qrInstructionInline}>
+                Total Bayar: <Text style={{fontWeight:'bold'}}>Rp.{totalHarga.toLocaleString("id-ID")}</Text>
+              </Text>
+              <Text style={styles.qrNote}>
+                Silakan scan kode di atas menggunakan aplikasi pembayaran Anda sebelum menekan tombol konfirmasi.
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -318,4 +341,40 @@ const styles = StyleSheet.create({
     borderColor: "#9CA3AF",
   },
   emptyText: { fontSize: 14, color: "#6B7280", fontWeight: "500" },
+  // STYLES TAMBAHAN UNTUK QRIS
+  qrSectionInline: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  qrContainerInline: {
+    width: 220,
+    height: 220,
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 15,
+    marginBottom: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  },
+  qrInstructionInline: {
+    fontSize: 15,
+    color: '#102A63',
+    marginBottom: 5,
+    textAlign: 'center'
+  },
+  qrNote: {
+    fontSize: 11,
+    color: '#6B7280',
+    textAlign: 'center',
+    paddingHorizontal: 15,
+    lineHeight: 16
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#D1D5DB',
+    width: '100%',
+    marginVertical: 20,
+  }
 });

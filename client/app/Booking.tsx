@@ -174,8 +174,22 @@ export default function BookingScreen() {
         <View style={styles.headerContainer}>
           <Image source={{ uri: mainImage }} style={styles.headerImage} />
           <View style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
-            <CustomHeader title="Booking" transparent={true} />
+            <CustomHeader
+              title="Booking"
+              transparent={true}
+              textColor="white" 
+              backButtonStyle={{
+                backgroundColor: "rgba(0,0,0,0.4)",
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+              backIconColor="white"
+            />
           </View>
+
           {place && (
             <View style={styles.headerInfo}>
               <View>
