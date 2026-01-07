@@ -38,6 +38,7 @@ export default function BookingScreen() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
+
   useEffect(() => {
     AsyncStorage.getItem("userId").then((id) => setUserId(id));
   }, []);

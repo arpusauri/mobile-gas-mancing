@@ -39,34 +39,43 @@ export default function PesananSayaScreen() {
     try {
       setLoading(true);
 
-      const token = await AsyncStorage.getItem("token");
+      // ✅ FIX: Gunakan "userToken" bukan "token"
+      const token = await AsyncStorage.getItem("userToken");
+
+      console.log("🔐 Token dari storage:", token ? "✅ Ada" : "❌ Kosong");
 
       if (!token) {
+        console.warn("⚠️ Token tidak ditemukan!");
         setOrders([]);
         return;
       }
 
       const result = await api.booking.getByUserId(token);
 
-      console.log("DATA PESANAN DARI SERVER:", result);
+      console.log("📦 DATA PESANAN DARI SERVER:", result);
 
-      const list = Array.isArray(result) ? result : [];
+      const list = Array.isArray(result) ? result : result.data || [];
 
       const mappedOrders: Pesanan[] = list.map((item: any) => ({
-        id_pesanan: String(item.id_pesanan),
-        nomor_pesanan: item.nomor_pesanan || item.id_pesanan,
-        title: item.place_name || "-",
-        location: item.place_location || "-",
-        price: Number(item.total_harga || 0),
-        status: item.status || "Menunggu Pembayaran",
-        image: item.place_image
-          ? `${API_URL}/uploads/${item.place_image.trim()}`
-          : "https://via.placeholder.com/400",
+        id_pesanan: String(item.id_pesanan || item.id || ""),
+        nomor_pesanan:
+          item.nomor_pesanan || item.order_number || item.id_pesanan,
+        title: item.place_name || item.tempat_name || "-",
+        location: item.location || item.place_location || item.lokasi || "-",
+        price: Number(item.total_harga || item.total_biaya || 0),
+        status: item.status_pesanan || item.status || "Menunggu Pembayaran",
+        image:
+          item.place_image || item.image_url
+            ? `${API_URL}/uploads/${(
+                item.place_image || item.image_url
+              ).trim()}`
+            : "https://via.placeholder.com/400",
       }));
 
+      console.log("✅ Mapped orders:", mappedOrders);
       setOrders(mappedOrders);
     } catch (err) {
-      console.error("FETCH PESANAN ERROR:", err);
+      console.error("❌ FETCH PESANAN ERROR:", err);
       setOrders([]);
     } finally {
       setLoading(false);
@@ -79,12 +88,13 @@ export default function PesananSayaScreen() {
 
   /* ================= STATUS COLOR ================= */
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Lunas":
+    switch (status?.toLowerCase()) {
+      case "lunas":
         return "#4ADE80";
-      case "Menunggu Pembayaran":
+      case "menunggu pembayaran":
+      case "menunggu":
         return "#FACC15";
-      case "Dibatalkan":
+      case "dibatalkan":
         return "#EF4444";
       default:
         return "#9CA3AF";
@@ -119,11 +129,12 @@ export default function PesananSayaScreen() {
     if (!confirmCancel) return;
 
     try {
-      const token = await AsyncStorage.getItem("token");
+      // ✅ FIX: Gunakan "userToken" bukan "token"
+      const token = await AsyncStorage.getItem("userToken");
       if (!token) return;
 
       const res = await api.booking.cancel(id, token);
-      console.log("Cancel Result:", res);
+      console.log("✅ Cancel Result:", res);
 
       await fetchPesanan();
 
@@ -146,7 +157,6 @@ export default function PesananSayaScreen() {
 
   return (
     <View style={styles.mainContainer}>
-      {/* ✅ showBackButton={false} untuk hide tombol kembali */}
       <CustomHeader title="Pesanan Saya" showCart showBackButton={false} />
 
       {orders.length === 0 ? (
@@ -206,8 +216,8 @@ export default function PesananSayaScreen() {
                       <Text style={styles.btnText}>Lihat Detail</Text>
                     </TouchableOpacity>
 
-                    {item.status !== "Dibatalkan" &&
-                      item.status !== "Lunas" && (
+                    {item.status?.toLowerCase() !== "dibatalkan" &&
+                      item.status?.toLowerCase() !== "lunas" && (
                         <TouchableOpacity
                           style={styles.btnBatal}
                           onPress={() => handleCancel(item.id_pesanan)}
