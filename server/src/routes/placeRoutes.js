@@ -80,8 +80,8 @@ router.post("/",
     placeController.createPlace
 );
 
-// 6. UPDATE Place
-router.put('/:id', placeController.updatePlace);    
+// ✅ YANG BENAR (Tambahkan upload.single):
+router.put('/:id', upload.single('image'), placeController.updatePlace);
 
 // 7. DELETE Place
 router.delete('/:id', placeController.deletePlace); 

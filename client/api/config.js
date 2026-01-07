@@ -53,13 +53,45 @@ export const api = {
     getAll: () => apiCall("/api/ensiklopedia"),
     getById: (id) => apiCall(`/api/ensiklopedia/${id}`),
   },
-  places: {
-    getAll: () => apiCall("/api/places"),
-    getById: (id) => apiCall(`/api/places/${id}`),
-    getByMitraId: (mitraId, token) =>
-      apiCall(`/api/places/mitra/${mitraId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
+// ... kode sebelumnya ...
+
+places: {
+  getAll: () => apiCall("/api/places"),
+  getById: (id) => apiCall(`/api/places/${id}`),
+  getByMitraId: (mitraId, token) => 
+    apiCall(`/api/places/mitra/${mitraId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  
+  create: (formData, token) =>
+    apiCall("/api/places", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData, 
+    }),
+  
+  // --- PERBAIKAN DI SINI ---
+  update: (id, data, token) =>
+    apiCall(`/api/places/${id}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` },
+      // Cek: Kalau dia FormData, JANGAN di-stringify. Kalau JSON biasa, baru stringify.
+      body: data instanceof FormData ? data : JSON.stringify(data),
+    }),
+  // -------------------------
+  
+  delete: (id, token) =>
+    apiCall(`/api/places/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+    
+  search: (location = "", priceMin = "", priceMax = "", facilities = "") => {
+    const params = new URLSearchParams();
+    if (location) params.append("location", location);
+    if (priceMin) params.append("priceMin", priceMin);
+    if (priceMax) params.append("priceMax", priceMax);
+    if (facilities) params.append("facilities", facilities);
 
     // ✅ TAMBAHKAN INI (method create):
     create: (formData, token) =>
@@ -92,6 +124,9 @@ export const api = {
       return apiCall(`/api/places/search?${params.toString()}`);
     },
   },
+},
+
+// ... kode sisanya ...
   itemSewa: {
     getAll: () => apiCall("/api/item_sewa"),
     getById: (id) => apiCall(`/api/item_sewa/${id}`),
