@@ -10,7 +10,7 @@ if (__DEV__) {
   } else if (Platform.OS === "android") {
     API_URL = "http://10.0.2.2:3000";
   } else {
-    API_URL = "http://192.168.1.100:3000";
+    API_URL = "http://192.168.1.100:3000"; // Ganti dengan IP lokal kamu
   }
 } else {
   API_URL = "https://your-production-api.com";
@@ -20,15 +20,6 @@ export const apiCall = async (endpoint, options = {}) => {
   console.log("🔗 Calling API:", `${API_URL}${endpoint}`);
 
   try {
-    // ini yg before update krna (Agar FormData (gambar) bisa terkirim tanpa rusak oleh JSON.stringify)
-    // const response = await fetch(`${API_URL}${endpoint}`, {
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //     ...options.headers,
-    //   },
-    //   ...options,
-    // });
-    // Di dalam apiCall config.js
     const response = await fetch(`${API_URL}${endpoint}`, {
       headers: {
         // HAPUS Content-Type jika body adalah FormData
@@ -41,12 +32,10 @@ export const apiCall = async (endpoint, options = {}) => {
     });
     
     const result = await response.json();
-    console.log("Raw response:", result);
+    console.log("✅ API Response:", result);
 
     if (!response.ok || result.success === false) {
-      // Tambahkan cek result.success
-      const errorMessage =
-        result.message || result.error || "Terjadi kesalahan";
+      const errorMessage = result.message || result.error || "Terjadi kesalahan";
       console.error("❌ API Error Details:", result);
       throw new Error(errorMessage);
     }
@@ -64,19 +53,45 @@ export const api = {
     getAll: () => apiCall("/api/ensiklopedia"),
     getById: (id) => apiCall(`/api/ensiklopedia/${id}`),
   },
-  places: {
-    getAll: () => apiCall("/api/places"),
-    getById: (id) => apiCall(`/api/places/${id}`),
-    search: (location = "", priceMin = "", priceMax = "", facilities = "") => {
-      const params = new URLSearchParams();
-      if (location) params.append("location", location);
-      if (priceMin) params.append("priceMin", priceMin);
-      if (priceMax) params.append("priceMax", priceMax);
-      if (facilities) params.append("facilities", facilities);
+places: {
+  getAll: () => apiCall("/api/places"),
+  getById: (id) => apiCall(`/api/places/${id}`),
+  getByMitraId: (mitraId, token) => 
+    apiCall(`/api/places/mitra/${mitraId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  
+  // ✅ TAMBAHKAN INI (method create):
+  create: (formData, token) =>
+    apiCall("/api/places", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData, // FormData dengan image
+    }),
+  
+  update: (id, data, token) =>
+    apiCall(`/api/places/${id}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    }),
+  
+  delete: (id, token) =>
+    apiCall(`/api/places/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+    
+  search: (location = "", priceMin = "", priceMax = "", facilities = "") => {
+    const params = new URLSearchParams();
+    if (location) params.append("location", location);
+    if (priceMin) params.append("priceMin", priceMin);
+    if (priceMax) params.append("priceMax", priceMax);
+    if (facilities) params.append("facilities", facilities);
 
-      return apiCall(`/api/places/search?${params.toString()}`);
-    },
+    return apiCall(`/api/places/search?${params.toString()}`);
   },
+},
   itemSewa: {
     getAll: () => apiCall("/api/item_sewa"),
     getById: (id) => apiCall(`/api/item_sewa/${id}`),
@@ -154,41 +169,75 @@ export const api = {
       }),
   },
 
-  // FormMitra.tsx
+  // ==========================================
+  // MITRA API - FIXED VERSION
+  // ==========================================
   mitra: {
-    // Untuk pendaftaran mitra baru
-    register: (data, token) =>
+    // 1. REGISTER MITRA (TIDAK PERLU TOKEN)
+    // Endpoint: POST /api/mitra/register
+    // Body: FormData dengan foto
+    register: (formData) =>
       apiCall("/api/mitra/register", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        // JANGAN set Content-Type manual untuk FormData
+        // JANGAN pakai JSON.stringify untuk FormData
+        body: formData, // Langsung kirim FormData
+      }),
+
+    // 2. LOGIN MITRA
+    // Endpoint: POST /api/mitra/login
+    login: (data) =>
+      apiCall("/api/mitra/login", {
+        method: "POST",
         body: JSON.stringify(data),
       }),
 
-    // Untuk cek status pengajuan mitra (apakah masih pending, disetujui, atau ditolak)
-    getStatus: (token) =>
-      apiCall("/api/mitra/status", {
+    // 3. GET MITRA BY ID (PERLU TOKEN)
+    // Endpoint: GET /api/mitra/:id
+    getById: (id, token) =>
+      apiCall(`/api/mitra/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       }),
 
-    // Untuk upload dokumen mitra (KTP, Foto Tempat, dll) menggunakan FormData
-    uploadDocument: (formData, token) =>
-      apiCall("/api/mitra/upload", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // Khusus FormData, 'Content-Type' jangan diset manual 
-          // Biarkan browser/fetch yang mengaturnya secara otomatis
-          "Content-Type": "multipart/form-data", 
-        },
-        body: formData,
-      }),
-
-    // Untuk update data profil mitra jika sudah terdaftar
-    updateProfile: (data, token) =>
-      apiCall("/api/mitra/update", {
+    // 4. UPDATE MITRA (PERLU TOKEN)
+    // Endpoint: PUT /api/mitra/:id
+    update: (id, data, token) =>
+      apiCall(`/api/mitra/${id}`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
         body: JSON.stringify(data),
+      }),
+
+    // 5. DELETE MITRA (PERLU TOKEN)
+    // Endpoint: DELETE /api/mitra/:id
+    delete: (id, token) =>
+      apiCall(`/api/mitra/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
+    // 6. GET PROPERTY BOOKINGS BY MITRA ID (PERLU TOKEN)
+    // Endpoint: GET /api/mitra/property/bookings/:mitraId
+    getPropertyBookings: (mitraId, token) =>
+      apiCall(`/api/mitra/property/bookings/${mitraId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
+    // 7. UPDATE PROPERTY BOOKING STATUS (PERLU TOKEN)
+    // Endpoint: PUT /api/mitra/property/bookings/:id/status
+    updateBookingStatus: (id, status, token) =>
+      apiCall(`/api/mitra/property/bookings/${id}/status`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status }),
+      }),
+
+    // 8. DELETE PROPERTY BOOKING (PERLU TOKEN)
+    // Endpoint: DELETE /api/mitra/property/bookings/:id
+    deleteBooking: (id, token) =>
+      apiCall(`/api/mitra/property/bookings/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
       }),
   },
 };

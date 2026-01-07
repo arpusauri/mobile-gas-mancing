@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const placeController = require('../controllers/placeController');
+const { authenticateToken } = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -64,6 +65,9 @@ router.get("/search", placeController.searchPlaces);
 
 // 3. GET All Places
 router.get("/", placeController.getAllPlaces);
+
+// 3.5. GET Places by Mitra ID (HARUS DI ATAS /:id)
+router.get("/mitra/:mitraId", authenticateToken, placeController.getPlacesByMitraId);
 
 // 4. GET Place by ID
 router.get("/:id", placeController.getPlaceById);

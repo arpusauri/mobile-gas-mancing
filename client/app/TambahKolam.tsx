@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, 
-  Image, Alert, Dimensions, KeyboardAvoidingView, Platform 
+  Image, Alert, Dimensions, KeyboardAvoidingView, Platform, ActivityIndicator 
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// IMPORT API CONFIG KAMU
+import { api } from '../api/config';
 
 const { width } = Dimensions.get('window');
 
-// Interface untuk Item Tambahan agar rapi
 interface ExtraItem {
   id: string;
   name: string;
@@ -22,6 +25,7 @@ interface ExtraItem {
 
 export default function TambahKolam() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false); // State Loading
 
   // --- STATE PROPERTI UTAMA ---
   const [namaTempat, setNamaTempat] = useState('');
@@ -38,11 +42,11 @@ export default function TambahKolam() {
   // --- STATE ITEM TAMBAHAN ---
   const [extraItems, setExtraItems] = useState<ExtraItem[]>([]);
 
-  // Fungsi Ambil Foto (Main atau Item)
+  // Fungsi Ambil Foto
   const pickImage = async (itemId: string | 'main') => {
     let result = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
-      aspect: [16, 9],
+      aspect: [4, 3], // Ganti aspect ratio biar lebih proporsional
       quality: 0.7,
     });
 
@@ -74,85 +78,71 @@ export default function TambahKolam() {
     setFacilities(facilities.includes(f) ? facilities.filter(x => x !== f) : [...facilities, f]);
   };
 
-// TambahKolam.tsx - Update Fungsi handleSimpan
-
-const handleSimpan = async () => {
-  if (!namaTempat || !harga || !mainPhoto) {
-    Alert.alert("Error", "Nama, Harga, dan Foto Utama wajib diisi!");
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const formData = new FormData();
-
-    // 1. DATA UTAMA (Sesuai req.body di Controller)
-    // Ambil id_mitra dari storage/context kamu (contoh: '1')
-    formData.append('id_mitra', '1'); 
-    formData.append('title', namaTempat);
-    formData.append('location', alamat);
-    formData.append('base_price', harga.replace(/[^0-9]/g, '')); // Bersihkan titik
-    formData.append('price_unit', satuan);
-    formData.append('description', deskripsi);
-    formData.append('jam_buka', jamBuka);
-    formData.append('jam_tutup', jamTutup);
-
-    // 2. FOTO UTAMA (Key harus 'image_url' sesuai controller)
-    const mainUri = Platform.OS === 'ios' ? mainPhoto.replace('file://', '') : mainPhoto;
-    formData.append('image_url', {
-      uri: mainUri,
-      name: 'main_place.jpg',
-      type: 'image/jpeg',
-    } as any);
-
-    // 3. FASILITAS (Kirim Array ID sebagai JSON string)
-    // NOTE: Sesuaikan mapping ID ini dengan tabel `fasilitas` di DB kamu
-    const facilityMapping: { [key: string]: number } = {
-      'Toilet': 1,
-      'Musholla': 2,
-      'Parkiran': 3,
-      'Kantin': 4,
-      'Wifi': 5
-    };
-    const selectedFacilityIds = facilities.map(f => facilityMapping[f]);
-    formData.append('fasilitas', JSON.stringify(selectedFacilityIds));
-
-    // 4. ITEM SEWA (Format: items[i][field])
-    extraItems.forEach((item, index) => {
-      formData.append(`items[${index}][nama_item]`, item.name);
-      formData.append(`items[${index}][price]`, item.price.replace(/[^0-9]/g, ''));
-      formData.append(`items[${index}][price_unit]`, item.unit);
-      
-      // Jika ada gambar per item (karena controller kamu mendukung item[i][image_url])
-      if (item.image) {
-        formData.append(`items[${index}][image_url]`, {
-          uri: item.image,
-          name: `item_${index}.jpg`,
-          type: 'image/jpeg',
-        } as any);
-      }
-    });
-
-    console.log("🚀 Mengirim Data...");
-
-    const response = await axios.post('http://ALAMAT_IP_BACKEND:3000/api/places', formData, {
-      headers: { 
-        'Content-Type': 'multipart/form-data',
-        'Accept': 'application/json'
-      },
-    });
-
-    if (response.data.success) {
-      Alert.alert("Berhasil", "Properti Kolam Berhasil Diterbitkan!");
-      router.back();
+  // --- FUNGSI SIMPAN DATA KE API ---
+  const handleSimpan = async () => {
+    // 1. Validasi Input
+    if (!namaTempat || !harga || !mainPhoto || !alamat) {
+      Alert.alert("Data Belum Lengkap", "Nama, Harga, Alamat, dan Foto Utama wajib diisi!");
+      return;
     }
-  } catch (error: any) {
-    console.error("❌ Error Detail:", error.response?.data || error.message);
-    Alert.alert("Gagal", error.response?.data?.message || "Terjadi kesalahan koneksi");
-  } finally {
-    setLoading(false);
-  }
-};
+
+    setLoading(true);
+
+    try {
+      // 2. Ambil Token
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        Alert.alert("Error", "Sesi habis. Silakan login ulang.");
+        return;
+      }
+
+      // 3. Siapkan FormData
+      const formData = new FormData();
+
+      // Append Text Data
+      formData.append('title', namaTempat);
+      formData.append('location', alamat);
+      formData.append('description', deskripsi);
+      formData.append('base_price', harga.replace(/[^0-9]/g, '')); // Pastikan cuma angka
+      formData.append('price_unit', satuan);
+      formData.append('open_time', jamBuka);
+      formData.append('close_time', jamTutup);
+      
+      // Kirim array fasilitas sebagai JSON String
+      formData.append('fasilitas', JSON.stringify(facilities));
+      
+      // Kirim items tambahan sebagai JSON String (Jika backend support)
+      // Kalau backend belum support, ini akan diabaikan atau perlu endpoint terpisah
+      formData.append('extra_items', JSON.stringify(extraItems));
+
+      // 4. Append Image (PENTING: Format harus sesuai React Native)
+      const filename = mainPhoto.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename || '');
+      const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+      formData.append('image', {
+        uri: mainPhoto,
+        name: filename || 'upload.jpg',
+        type: type,
+      } as any); // 'as any' untuk bypass cek tipe TypeScript RN
+
+      console.log("📤 Mengirim Data...", formData);
+
+      // 5. Panggil API Create
+      const response = await api.places.create(formData, token);
+      
+      console.log("✅ Sukses:", response);
+      Alert.alert("Berhasil", "Kolam berhasil ditambahkan!");
+      router.back(); // Kembali ke Dashboard
+
+    } catch (error: any) {
+      console.error("❌ Gagal Simpan:", error);
+      const msg = error.message || "Gagal menyimpan data.";
+      Alert.alert("Gagal", msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1}}>
@@ -163,7 +153,12 @@ const handleSimpan = async () => {
         {/* SECTION 1: NAMA & FOTO */}
         <View style={styles.section}>
           <Text style={styles.label}>Nama Tempat / Kolam</Text>
-          <TextInput style={styles.input} placeholder="Contoh: Pemancingan Galatama Jaya" value={namaTempat} onChangeText={setNamaTempat} />
+          <TextInput 
+            style={styles.input} 
+            placeholder="Contoh: Pemancingan Galatama Jaya" 
+            value={namaTempat} 
+            onChangeText={setNamaTempat} 
+          />
           
           <Text style={styles.label}>Foto Utama Lokasi</Text>
           <TouchableOpacity style={styles.mainUpload} onPress={() => pickImage('main')}>
@@ -183,7 +178,13 @@ const handleSimpan = async () => {
           <View style={styles.row}>
             <View style={{ flex: 2, marginRight: 10 }}>
               <Text style={styles.label}>Harga Sewa (Rp)</Text>
-              <TextInput style={styles.input} placeholder="Contoh: 50000" keyboardType="numeric" value={harga} onChangeText={setHarga} />
+              <TextInput 
+                style={styles.input} 
+                placeholder="Contoh: 50000" 
+                keyboardType="numeric" 
+                value={harga} 
+                onChangeText={setHarga} 
+              />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>Satuan</Text>
@@ -198,13 +199,25 @@ const handleSimpan = async () => {
           </View>
 
           <Text style={styles.label}>Alamat Lengkap</Text>
-          <TextInput style={[styles.input, {height: 80}]} multiline placeholder="Jl. Raya Pemancingan No. 123..." value={alamat} onChangeText={setAlamat} />
+          <TextInput 
+            style={[styles.input, {height: 80, textAlignVertical: 'top'}]} 
+            multiline 
+            placeholder="Jl. Raya Pemancingan No. 123..." 
+            value={alamat} 
+            onChangeText={setAlamat} 
+          />
         </View>
 
         {/* SECTION 3: DETAIL LAINNYA */}
         <View style={styles.section}>
           <Text style={styles.label}>Deskripsi Tempat</Text>
-          <TextInput style={[styles.input, {height: 80}]} multiline placeholder="Ceritakan keunggulan kolam lu..." value={deskripsi} onChangeText={setDeskripsi} />
+          <TextInput 
+            style={[styles.input, {height: 80, textAlignVertical: 'top'}]} 
+            multiline 
+            placeholder="Ceritakan keunggulan kolam Anda..." 
+            value={deskripsi} 
+            onChangeText={setDeskripsi} 
+          />
 
           <View style={styles.row}>
             <TouchableOpacity style={{ flex: 1, marginRight: 10 }} onPress={() => setShowPicker('open')}>
@@ -231,7 +244,7 @@ const handleSimpan = async () => {
           </View>
         </View>
 
-        {/* SECTION 5: ITEM TAMBAHAN (DYNAMICS) */}
+        {/* SECTION 5: ITEM TAMBAHAN */}
         <View style={styles.section}>
           <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom: 15}}>
             <Text style={styles.sectionTitle}>Item Tambahan</Text>
@@ -254,6 +267,7 @@ const handleSimpan = async () => {
                   <TextInput 
                     style={styles.inputSmall} 
                     placeholder="Nama Item (cth: Joran)" 
+                    value={item.name}
                     onChangeText={(v) => {
                       const newItems = [...extraItems];
                       newItems[index].name = v;
@@ -264,6 +278,7 @@ const handleSimpan = async () => {
                     style={styles.inputSmall} 
                     placeholder="Harga" 
                     keyboardType="numeric"
+                    value={item.price}
                     onChangeText={(v) => {
                       const newItems = [...extraItems];
                       newItems[index].price = v;
@@ -277,7 +292,6 @@ const handleSimpan = async () => {
               </View>
 
               <View style={[styles.row, {marginTop: 10, gap: 10}]}>
-                {/* Tipe Item */}
                 <View style={{flex: 1}}>
                   <Text style={styles.labelSmall}>Tipe</Text>
                   <View style={styles.miniToggle}>
@@ -296,7 +310,6 @@ const handleSimpan = async () => {
                     ))}
                   </View>
                 </View>
-                {/* Satuan Item */}
                 <View style={{flex: 1}}>
                   <Text style={styles.labelSmall}>Satuan</Text>
                   <View style={styles.miniToggle}>
@@ -320,14 +333,21 @@ const handleSimpan = async () => {
           ))}
         </View>
 
-        <TouchableOpacity style={styles.btnSimpan} onPress={handleSimpan}>
-          <Text style={styles.btnSimpanText}>Terbitkan Properti Kolam</Text>
+        <TouchableOpacity 
+            style={[styles.btnSimpan, loading && {backgroundColor: '#94A3B8'}]} 
+            onPress={handleSimpan}
+            disabled={loading}
+        >
+          {loading ? (
+             <ActivityIndicator color="#fff" />
+          ) : (
+             <Text style={styles.btnSimpanText}>Terbitkan Properti Kolam</Text>
+          )}
         </TouchableOpacity>
 
         <View style={{height: 50}} />
       </ScrollView>
 
-      {/* TIME PICKER MODAL */}
       {showPicker && (
         <DateTimePicker 
           value={new Date()} 

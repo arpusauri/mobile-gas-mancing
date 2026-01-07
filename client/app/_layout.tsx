@@ -23,19 +23,41 @@ export default function RootLayout() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = await AsyncStorage.getItem("token");
+      // CEK KEDUA TOKEN (customer: "token", mitra: "userToken")
+      const customerToken = await AsyncStorage.getItem("token");
+      const mitraToken = await AsyncStorage.getItem("userToken");
+      const userRole = await AsyncStorage.getItem("userRole");
+
+      const token = customerToken || mitraToken;
 
       const inAuthGroup =
         segments[0] === undefined ||
         segments[0] === "Signin" ||
-        segments[0] === "Signup";
+        segments[0] === "Signup" ||
+        segments[0] === "FormMitra";
 
+      console.log("🔍 Auth Check:", {
+        token: token ? "✅ Found" : "❌ Not found",
+        userRole,
+        segments,
+        inAuthGroup
+      });
+
+      // Jika tidak ada token dan bukan di halaman auth, redirect ke home
       if (!token && !inAuthGroup) {
+        console.log("🔄 No token, redirecting to /");
         router.replace("/");
       }
 
+      // Jika ada token dan di halaman auth, redirect ke dashboard yang sesuai
       if (token && inAuthGroup) {
-        router.replace("/(tabs)");
+        if (userRole === "mitra") {
+          console.log("🔄 Mitra logged in, redirecting to /(mitra)");
+          router.replace("/(mitra)");
+        } else {
+          console.log("🔄 Customer logged in, redirecting to /(tabs)");
+          router.replace("/(tabs)");
+        }
       }
 
       setChecked(true);
@@ -43,7 +65,6 @@ export default function RootLayout() {
 
     checkAuth();
   }, [segments]);
-
 
   if (!checked) {
     return null;
@@ -56,8 +77,13 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="Signin" options={{ headerShown: false }} />
         <Stack.Screen name="Signup" options={{ headerShown: false }} />
+        
+        {/* MITRA SCREENS */}
+        <Stack.Screen name="FormMitra" options={{ headerShown: false }} />
+        <Stack.Screen name="TambahKolam" options={{ headerShown: false }} />
+        <Stack.Screen name="(mitra)" options={{ headerShown: false }} />
 
-        {/* MAIN APP */}
+        {/* MAIN APP (CUSTOMER) */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
         {/* OTHER SCREENS */}
