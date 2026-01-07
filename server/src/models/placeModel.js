@@ -289,56 +289,68 @@ static async search(location, price, facilities) {
     }));
   }
 
-  static async update(id, data) {
-    // Siapkan penampung untuk query
-    const fields = [];
-    const values = [];
+static async update(id, data) {
+        // Hapus key yang nilainya undefined agar tidak merusak query
+        Object.keys(data).forEach(key => data[key] === undefined && delete data[key]);
 
-    // Cek satu per satu field, jika ada di data, tambahkan ke query
-    if (data.title) {
-      fields.push("title = ?");
-      values.push(data.title);
-    }
-    if (data.location) {
-      fields.push("location = ?");
-      values.push(data.location);
-    }
-    if (data.base_price) {
-      fields.push("base_price = ?");
-      values.push(data.base_price);
-    }
-    if (data.price_unit) {
-      fields.push("price_unit = ?");
-      values.push(data.price_unit);
-    }
-    if (data.description) {
-      fields.push("description = ?");
-      values.push(data.description);
-    }
-    if (data.full_description) {
-      fields.push("full_description = ?");
-      values.push(data.full_description);
-    }
-    // (Opsional) Jika ingin update image_url lewat edit
-    if (data.image_url) {
-      fields.push("image_url = ?");
-      values.push(data.image_url);
+        const query = `UPDATE tempat_pemancingan SET ? WHERE id_tempat = ?`;
+        
+        try {
+            const [result] = await db.query(query, [data, id]);
+            console.log("✅ DB Update Result:", result.affectedRows);
+            return result.affectedRows > 0; // Return true jika ada baris yang kena update
+        } catch (error) {
+            console.error("❌ DB Query Error:", error);
+            throw error;
+        }
     }
 
-    // Jika tidak ada data yang dikirim untuk diupdate
-    if (fields.length === 0) return false;
+    // === UPDATE FASILITAS (Hapus Lama -> Insert Baru) ===
+    static async updateFacilities(placeId, facilitiesArray) {
+        const connection = await db.getConnection();
+        try {
+            await connection.beginTransaction();
 
-    // Tambahkan ID ke values untuk WHERE clause
-    values.push(id);
+            // 1. Hapus mapping fasilitas lama di tabel 'tempat_fasilitas'
+            // Asumsi nama tabel join adalah 'tempat_fasilitas'
+            const deleteQuery = `DELETE FROM tempat_fasilitas WHERE id_tempat = ?`;
+            await connection.query(deleteQuery, [placeId]);
 
-    const query = `UPDATE tempat_pemancingan SET ${fields.join(", ")} WHERE id_tempat = ?`;
+            // 2. Loop insert fasilitas baru
+            // Kita perlu cari ID Fasilitas berdasarkan Namanya dulu (karena inputnya string ['Wifi', 'Toilet'])
+            if (facilitiesArray.length > 0) {
+                for (const facilityName of facilitiesArray) {
+                    
+                    // A. Cari ID fasilitas di tabel master 'fasilitas'
+                    // Asumsi tabel master namanya 'fasilitas', kolom 'nama_fasilitas'
+                    const [rows] = await connection.query(`SELECT id_fasilitas FROM fasilitas WHERE nama_fasilitas = ?`, [facilityName]);
+                    
+                    let facId;
+                    if (rows.length > 0) {
+                        facId = rows[0].id_fasilitas;
+                    } else {
+                        // Jika fasilitas belum ada di master, insert dulu (Opsional, tergantung kebijakan)
+                        // Kalau tidak mau auto-add, skip saja
+                        const [insertRes] = await connection.query(`INSERT INTO fasilitas (nama_fasilitas) VALUES (?)`, [facilityName]);
+                        facId = insertRes.insertId;
+                    }
 
-    const [result] = await db.query(query, values);
+                    // B. Insert ke tabel join 'tempat_fasilitas'
+                    await connection.query(`INSERT INTO tempat_fasilitas (id_tempat, id_fasilitas) VALUES (?, ?)`, [placeId, facId]);
+                }
+            }
+
+            await connection.commit();
+            console.log("✅ Fasilitas updated");
+        } catch (error) {
+            await connection.rollback();
+            console.error("❌ Gagal update fasilitas:", error);
+            throw error;
+        } finally {
+            connection.release();
+        }
+    }
     
-    // Mengembalikan true jika ada baris yang berubah
-    return result.affectedRows > 0;
-  }
-
   static async delete(id) {
     // 1. Hapus dulu Fasilitas yang nyangkut
     await db.query("DELETE FROM tempat_fasilitas WHERE id_tempat = ?", [id]);

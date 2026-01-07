@@ -183,58 +183,66 @@ exports.createPlace = async (req, res) => {
 
 // 5. UPDATE PLACE
 exports.updatePlace = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const data = req.body;
+    try {
+        const { id } = req.params;
+        const data = req.body;
 
-    let finalDescription = undefined;
-    
-    if (data.deskripsi || (data.jamBuka && data.jamTutup)) {
-      const descText = data.deskripsi || "";
-      if (data.jamBuka && data.jamTutup) {
-        finalDescription = `Buka: ${data.jamBuka} - ${data.jamTutup}. ${descText}`;
-      } else {
-        finalDescription = descText;
-      }
+        console.log("🔥 Mulai Update ID:", id);
+        console.log("📦 Data diterima:", data);
+
+        // 1. SIAPKAN DATA UTAMA (Mapping sesuai nama kolom Database)
+        // Lihat file SQL kamu, nama kolomnya: title, description, location, base_price, price_unit, open_time, close_time
+        const updateData = {
+            title: data.title, 
+            description: data.description, // deskripsi panjang ("Buka: ...")
+            full_description: data.full_description, // deskripsi asli
+            location: data.location,
+            base_price: data.base_price, // Pastikan ini angka bersih
+            price_unit: data.price_unit,
+            open_time: data.open_time,
+            close_time: data.close_time
+        };
+
+        // 2. JIKA ADA GAMBAR BARU
+        if (req.file) {
+            // Ganti IP sesuai konfigurasi kamu
+            updateData.image_url = `http://192.168.1.3:3000/uploads/${req.file.filename}`;
+            console.log("📸 Gambar baru:", updateData.image_url);
+        }
+
+        // 3. PANGGIL MODEL UPDATE UTAMA
+        const updated = await PlaceModel.update(id, updateData);
+
+        // 4. UPDATE FASILITAS (Tabel Terpisah)
+        if (data.fasilitas) {
+            let fasilitasArray = [];
+            try {
+                // Parsing JSON string menjadi Array
+                fasilitasArray = typeof data.fasilitas === 'string' 
+                    ? JSON.parse(data.fasilitas) 
+                    : data.fasilitas;
+            } catch (e) {
+                console.log("⚠️ Gagal parse fasilitas:", e);
+            }
+
+            if (Array.isArray(fasilitasArray)) {
+                console.log("🛠 Updating Fasilitas:", fasilitasArray);
+                await PlaceModel.updateFacilities(id, fasilitasArray);
+            }
+        }
+
+        if (updated) {
+            res.json({ success: true, message: "Data dan Fasilitas berhasil diupdate" });
+        } else {
+            // Jika updated false, mungkin ID tidak ditemukan
+            res.status(404).json({ success: false, message: "ID Tempat tidak ditemukan atau tidak ada perubahan data" });
+        }
+
+    } catch (error) {
+        console.error("❌ Error Update Place:", error);
+        res.status(500).json({ success: false, error: error.message });
     }
-
-    const updateData = {
-      title: data.namaProperti,
-      location: data.alamatProperti,
-      base_price: data.hargaSewa,
-      price_unit: data.satuanSewa,
-      description: finalDescription,
-      full_description: data.deskripsi,
-    };
-
-    Object.keys(updateData).forEach(key => 
-      updateData[key] === undefined && delete updateData[key]
-    );
-
-    const success = await PlaceModel.update(id, updateData);
-    
-    if (!success) {
-      const check = await PlaceModel.findById(id);
-      if (!check) {
-        return res.status(404).json({ 
-          success: false, 
-          message: "Tempat tidak ditemukan" 
-        });
-      }
-      return res.json({ 
-        success: true, 
-        message: "Tidak ada perubahan data" 
-      });
-    }
-
-    res.json({ success: true, message: "Berhasil update tempat" });
-
-  } catch (error) {
-    console.error("Update Error:", error);
-    res.status(500).json({ success: false, error: error.message });
-  }
 };
-
 // 6. DELETE PLACE
 exports.deletePlace = async (req, res) => {
   try {
