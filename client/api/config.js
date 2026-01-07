@@ -53,45 +53,45 @@ export const api = {
     getAll: () => apiCall("/api/ensiklopedia"),
     getById: (id) => apiCall(`/api/ensiklopedia/${id}`),
   },
-places: {
-  getAll: () => apiCall("/api/places"),
-  getById: (id) => apiCall(`/api/places/${id}`),
-  getByMitraId: (mitraId, token) => 
-    apiCall(`/api/places/mitra/${mitraId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }),
-  
-  // ✅ TAMBAHKAN INI (method create):
-  create: (formData, token) =>
-    apiCall("/api/places", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData, // FormData dengan image
-    }),
-  
-  update: (id, data, token) =>
-    apiCall(`/api/places/${id}`, {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify(data),
-    }),
-  
-  delete: (id, token) =>
-    apiCall(`/api/places/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    }),
-    
-  search: (location = "", priceMin = "", priceMax = "", facilities = "") => {
-    const params = new URLSearchParams();
-    if (location) params.append("location", location);
-    if (priceMin) params.append("priceMin", priceMin);
-    if (priceMax) params.append("priceMax", priceMax);
-    if (facilities) params.append("facilities", facilities);
+  places: {
+    getAll: () => apiCall("/api/places"),
+    getById: (id) => apiCall(`/api/places/${id}`),
+    getByMitraId: (mitraId, token) =>
+      apiCall(`/api/places/mitra/${mitraId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
 
-    return apiCall(`/api/places/search?${params.toString()}`);
+    // ✅ TAMBAHKAN INI (method create):
+    create: (formData, token) =>
+      apiCall("/api/places", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData, // FormData dengan image
+      }),
+
+    update: (id, data, token) =>
+      apiCall(`/api/places/${id}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify(data),
+      }),
+
+    delete: (id, token) =>
+      apiCall(`/api/places/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
+    search: (location = "", priceMin = "", priceMax = "", facilities = "") => {
+      const params = new URLSearchParams();
+      if (location) params.append("location", location);
+      if (priceMin) params.append("priceMin", priceMin);
+      if (priceMax) params.append("priceMax", priceMax);
+      if (facilities) params.append("facilities", facilities);
+
+      return apiCall(`/api/places/search?${params.toString()}`);
+    },
   },
-},
   itemSewa: {
     getAll: () => apiCall("/api/item_sewa"),
     getById: (id) => apiCall(`/api/item_sewa/${id}`),
@@ -228,7 +228,10 @@ places: {
     updateBookingStatus: (id, status, token) =>
       apiCall(`/api/mitra/property/bookings/${id}/status`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json", // ⚡ wajib disini
+        },
         body: JSON.stringify({ status }),
       }),
 
