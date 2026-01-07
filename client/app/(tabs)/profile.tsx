@@ -8,6 +8,8 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Dimensions,
+  Platform,
+  Alert,
 } from "react-native";
 import { router, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,7 +17,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "../../api/config";
 import BackgroundLayout from "../../components/BackgroundLayout";
-import { Platform, Alert } from "react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -46,7 +47,6 @@ const InputField = ({
 );
 
 export default function UserProfileScreen() {
-  // STATE harus di dalam komponen
   const [email, setEmail] = React.useState("");
   const [username, setUsername] = React.useState("");
   const [phone, setPhone] = React.useState("");
@@ -58,22 +58,31 @@ export default function UserProfileScreen() {
   React.useEffect(() => {
     const loadProfile = async () => {
       try {
-        const token = await AsyncStorage.getItem("token");
-        if (!token) return;
+        // ✅ FIX: Gunakan "userToken" bukan "token"
+        const token = await AsyncStorage.getItem("userToken");
+        const storedUserId = await AsyncStorage.getItem("userId");
 
+        console.log("🔐 Token:", token ? "✅ Ada" : "❌ Kosong");
+        console.log("👤 UserId:", storedUserId || "❌ Kosong");
+
+        if (!token) {
+          console.warn("⚠️ Token tidak ditemukan!");
+          return;
+        }
+
+        // Ambil profile dari API
         const response = await api.auth.getProfile(token);
-        console.log("Raw response:", response); // <-- sudah benar
+        console.log("📥 Profile Response:", response);
 
-        // Ambil user object
-        const user = response.user;
-
-        // SET STATE dari user
-        setUserId(user.id_pengguna);
+        // Mapping field dengan fallback
+        const user = response.user || response;
+        setUserId(storedUserId || String(user.id_pengguna || user.id || ""));
         setEmail(user.email || "");
-        setUsername(user.nama_lengkap || "");
-        setPhone(user.no_telepon || "");
+        setUsername(user.nama_lengkap || user.name || "");
+        setPhone(user.no_telepon || user.phone || "");
       } catch (err) {
-        console.error("Failed to load user profile", err);
+        console.error("❌ Failed to load user profile:", err);
+        Alert.alert("Error", "Gagal memuat profil");
       } finally {
         setLoading(false);
       }
@@ -85,27 +94,37 @@ export default function UserProfileScreen() {
   // HANDLE SUBMIT
   const handleSubmit = async () => {
     try {
+      if (!userId) {
+        Alert.alert("Error", "User ID tidak ditemukan");
+        return;
+      }
+
       const payload: any = {
         nama_lengkap: username,
         email,
         no_telepon: phone,
       };
-      if (password.trim() !== "") payload.password_hash = password;
+
+      if (password.trim() !== "") {
+        payload.password_hash = password;
+      }
+
+      console.log("📤 Updating profile with:", payload);
 
       await api.users.update(userId, payload);
-      alert("Profile updated!");
+      Alert.alert("Sukses", "Profil berhasil diperbarui!");
     } catch (err) {
-      console.error(err);
-      alert("Failed to update profile");
+      console.error("❌ Update profile error:", err);
+      Alert.alert("Error", "Gagal memperbarui profil");
     }
   };
 
   const handleLogout = async () => {
     const doLogout = async () => {
-      await AsyncStorage.multiRemove(["token", "userId"]);
+      // ✅ FIX: Hapus "userToken" bukan "token"
+      await AsyncStorage.multiRemove(["userToken", "userId", "userRole"]);
 
       if (Platform.OS === "web") {
-        // ⬅️ INI PENTING: HARD RESET ROUTER
         window.location.href = "/";
         return;
       }
@@ -195,7 +214,7 @@ export default function UserProfileScreen() {
 
             <InputField
               icon="lock-closed"
-              placeholder="Enter your password"
+              placeholder="Enter your password (optional)"
               isPassword={true}
               iconColor="#000000"
               value={password}
@@ -207,8 +226,9 @@ export default function UserProfileScreen() {
               style={styles.submitButton}
               onPress={handleSubmit}
             >
-              <Text style={styles.submitButtonText}>Submit</Text>
+              <Text style={styles.submitButtonText}>Simpan Perubahan</Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.logoutButton}
               onPress={handleLogout}
@@ -308,11 +328,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#FF4D4F",
   },
-
   logoutText: {
     color: "#FF4D4F",
     fontSize: 15,
     fontWeight: "bold",
   },
 });
-

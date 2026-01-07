@@ -20,8 +20,14 @@ export default function ConfirmationScreen() {
 
   // Ambil token saat load
   useEffect(() => {
-    AsyncStorage.getItem("token").then(setToken);
-    AsyncStorage.getItem("userId").then(setUserId);
+    const loadAuth = async () => {
+      const userToken = await AsyncStorage.getItem("userToken"); // ✅ BENAR
+      const userId = await AsyncStorage.getItem("userId");
+
+      setToken(userToken);
+      setUserId(userId);
+    };
+    loadAuth();
   }, []);
 
   // --- PARSING DATA DARI URL PARAMS ---

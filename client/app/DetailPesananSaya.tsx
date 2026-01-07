@@ -18,58 +18,92 @@ import { API_URL, api } from "../api/config";
 export default function DetailPesananSaya() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [pesanan, setPesanan] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDetail = async () => {
       try {
-        const token = await AsyncStorage.getItem("token");
-        if (!token || !id) return;
+        setLoading(true);
+        // ✅ FIX: Gunakan "userToken" bukan "token"
+        const token = await AsyncStorage.getItem("userToken");
 
+        if (!token || !id) {
+          console.warn("⚠️ Token atau ID tidak ditemukan");
+          return;
+        }
+
+        console.log("🔐 Fetching with token:", token ? "✅ Ada" : "❌ Kosong");
+        console.log("📦 Booking ID:", id);
+
+        // Fetch booking detail
         const res = await api.booking.getById(id, token);
-        setPesanan(res); // API return object
+        console.log("📥 Booking response:", res);
+
+        setPesanan(res);
       } catch (err) {
-        console.error("Gagal ambil detail pesanan", err);
+        console.error("❌ Gagal ambil detail pesanan:", err);
+        Alert.alert("Error", "Gagal memuat data pesanan");
+      } finally {
+        setLoading(false);
       }
     };
+
     fetchDetail();
   }, [id]);
 
-  if (!pesanan) return <Text>Loading...</Text>;
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <CustomHeader title="Detail Pesanan" showCart={true} />
+        <View style={styles.centerContent}>
+          <Text>Loading...</Text>
+        </View>
+      </View>
+    );
+  }
 
-  // ===== mapping data API ke UI =====
-  const {
-    id_pesanan,
-    status_pesanan,
-    place_name,
-    location,
-    nomor_pesanan,
-    total_biaya,
-    image_url,
-    tgl_mulai_sewa,
-    num_people,
-    metode_pembayaran: payment_method,
-    item_sewa = [],
-  } = pesanan;
+  if (!pesanan) {
+    return (
+      <View style={styles.container}>
+        <CustomHeader title="Detail Pesanan" showCart={true} />
+        <View style={styles.centerContent}>
+          <Text>Data pesanan tidak ditemukan</Text>
+        </View>
+      </View>
+    );
+  }
 
-  const title = place_name;
-  const locationText = location;
-  const orderId = nomor_pesanan;
-  const price = total_biaya;
-  const jumlahOrang = num_people;
+  // ===== MAPPING DATA DENGAN FALLBACK =====
+  const orderId = pesanan?.nomor_pesanan || pesanan?.order_number || "N/A";
+  const title = pesanan?.place_name || pesanan?.tempat_name || "Tempat";
+  const locationText = pesanan?.location || pesanan?.lokasi || "";
+  const price = pesanan?.total_biaya || pesanan?.total_harga || 0;
+  const jumlahOrang = pesanan?.num_people || pesanan?.jumlah_orang || 0;
 
   const imageUri =
-    image_url && typeof image_url === "string"
-      ? `${API_URL}/uploads/${image_url.trim()}`
+    pesanan?.image_url && typeof pesanan.image_url === "string"
+      ? `${API_URL}/uploads/${pesanan.image_url.trim()}`
       : "https://via.placeholder.com/600x400";
 
-  const tanggal = new Date(tgl_mulai_sewa).toLocaleDateString("id-ID", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  const tanggal =
+    pesanan?.tgl_mulai_sewa || pesanan?.tanggal_mulai
+      ? new Date(
+          pesanan?.tgl_mulai_sewa || pesanan?.tanggal_mulai
+        ).toLocaleDateString("id-ID", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })
+      : "N/A";
 
+  const items = pesanan?.item_sewa || pesanan?.items || [];
+  const status = pesanan?.status_pesanan || pesanan?.status || "pending";
+  const paymentMethod =
+    pesanan?.metode_pembayaran || pesanan?.payment_method || "N/A";
+
+  // ===== GET STATUS UI =====
   const getStatusUI = () => {
-    switch (status_pesanan?.toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case "lunas":
         return {
           backgroundColor: "#4ADE80",
@@ -140,7 +174,7 @@ export default function DetailPesananSaya() {
             </View>
             <View style={styles.alignRight}>
               <Text style={styles.labelDimmed}>Metode Pembayaran</Text>
-              <Text style={styles.valueBold}>{payment_method}</Text>
+              <Text style={styles.valueBold}>{paymentMethod}</Text>
             </View>
           </View>
 
@@ -188,12 +222,12 @@ export default function DetailPesananSaya() {
             showsHorizontalScrollIndicator={false}
             style={styles.equipmentScroll}
           >
-            {item_sewa.length === 0 ? (
+            {items.length === 0 ? (
               <Text style={{ color: "#888", fontSize: 12, marginTop: 8 }}>
                 Tidak ada peralatan yang disewa
               </Text>
             ) : (
-              item_sewa.map((item: any, idx: number) => {
+              items.map((item: any, idx: number) => {
                 const imageUri =
                   item.image_url && typeof item.image_url === "string"
                     ? `${API_URL}/uploads/${item.image_url.trim()}`
@@ -211,7 +245,7 @@ export default function DetailPesananSaya() {
                         numberOfLines={1}
                         ellipsizeMode="tail"
                       >
-                        {item.name}
+                        {item.name || item.nama_item || "Item"}
                       </Text>
                       {item.quantity && (
                         <Text style={styles.itemSubText}>
@@ -231,14 +265,17 @@ export default function DetailPesananSaya() {
           </ScrollView>
         </View>
       </ScrollView>
-
     </View>
   );
 }
 
-// Styles sama seperti versi sebelumnya
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "white" },
+  centerContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   heroSection: { height: 280, width: "100%", position: "relative" },
   heroImage: { width: "100%", height: "100%" },
   heroOverlay: {
@@ -311,13 +348,5 @@ const styles = StyleSheet.create({
   itemImage: { width: "100%", height: 80 },
   itemLabel: { paddingVertical: 8, alignItems: "center" },
   itemText: { fontSize: 12, fontWeight: "bold", color: "#102A63" },
-  footer: { padding: 20 },
-  btnBatal: {
-    backgroundColor: "#DC2626",
-    paddingVertical: 16,
-    borderRadius: 25,
-    alignItems: "center",
-  },
-  btnBatalText: { color: "white", fontSize: 16, fontWeight: "bold" },
   itemSubText: { fontSize: 11, color: "#475569", marginTop: 2 },
 });
