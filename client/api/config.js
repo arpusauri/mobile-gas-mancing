@@ -154,9 +154,10 @@ places: {
   review: {
     getAll: () => apiCall("/api/review"),
     getByPlaceId: (placeId) => apiCall(`/api/review/place/${placeId}`),
-    create: (data) =>
+    create: (data, token) =>
       apiCall("/api/review", {
         method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
         body: JSON.stringify(data),
       }),
   },
