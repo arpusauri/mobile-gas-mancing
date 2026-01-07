@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CustomHeader from "@/components/CustomHeader";
 import { api } from '../../api/config';
 
 const { width } = Dimensions.get('window');
@@ -203,33 +204,39 @@ export default function TambahKolam() {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1}}>
-      <Stack.Screen 
-        options={{ 
-          headerTitle: "Tambah Properti Baru", 
-          headerTintColor: '#102A63',
-          headerBackTitle: 'Kembali',
-        }} 
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+    >
+      <Stack.Screen options={{ headerShown: false }} />
+      <CustomHeader
+        title="Tambah Properti"
+        showBackButton={false}
       />
-      
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        
         {/* SECTION 1: NAMA & FOTO */}
         <View style={styles.section}>
           <Text style={styles.label}>Nama Tempat / Kolam *</Text>
-          <TextInput 
-            style={styles.input} 
-            placeholder="Contoh: Pemancingan Galatama Jaya" 
-            value={namaTempat} 
-            onChangeText={setNamaTempat} 
+          <TextInput
+            style={styles.input}
+            placeholder="Contoh: Pemancingan Galatama Jaya"
+            value={namaTempat}
+            onChangeText={setNamaTempat}
           />
-          
+
           <Text style={styles.label}>Foto Utama Lokasi *</Text>
-          <TouchableOpacity style={styles.mainUpload} onPress={() => pickImage('main')}>
+          <TouchableOpacity
+            style={styles.mainUpload}
+            onPress={() => pickImage("main")}
+          >
             {mainPhoto ? (
-              <Image source={{ uri: mainPhoto.uri }} style={styles.previewMain} />
+              <Image
+                source={{ uri: mainPhoto.uri }}
+                style={styles.previewMain}
+              />
             ) : (
-              <View style={{alignItems:'center'}}>
+              <View style={{ alignItems: "center" }}>
                 <Ionicons name="camera" size={40} color="#CBD5E1" />
                 <Text style={styles.uploadText}>Klik untuk upload foto</Text>
               </View>
@@ -242,24 +249,34 @@ export default function TambahKolam() {
           <View style={styles.row}>
             <View style={{ flex: 2, marginRight: 10 }}>
               <Text style={styles.label}>Harga Sewa (Rp) *</Text>
-              <TextInput 
-                style={styles.input} 
-                placeholder="Contoh: 50000" 
-                keyboardType="numeric" 
-                value={harga} 
-                onChangeText={setHarga} 
+              <TextInput
+                style={styles.input}
+                placeholder="Contoh: 50000"
+                keyboardType="numeric"
+                value={harga}
+                onChangeText={setHarga}
               />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>Satuan</Text>
               <View style={styles.toggleRow}>
-                {['Jam', 'Hari'].map(u => (
-                  <TouchableOpacity 
-                    key={u} 
-                    style={[styles.toggleBtn, satuan === u && styles.toggleActive]} 
+                {["Jam", "Hari"].map((u) => (
+                  <TouchableOpacity
+                    key={u}
+                    style={[
+                      styles.toggleBtn,
+                      satuan === u && styles.toggleActive,
+                    ]}
                     onPress={() => setSatuan(u)}
                   >
-                    <Text style={[styles.toggleText, satuan === u && {color:'#fff'}]}>{u}</Text>
+                    <Text
+                      style={[
+                        styles.toggleText,
+                        satuan === u && { color: "#fff" },
+                      ]}
+                    >
+                      {u}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -267,34 +284,44 @@ export default function TambahKolam() {
           </View>
 
           <Text style={styles.label}>Alamat Lengkap *</Text>
-          <TextInput 
-            style={[styles.input, {height: 80}]} 
-            multiline 
-            placeholder="Jl. Raya Pemancingan No. 123..." 
-            value={alamat} 
-            onChangeText={setAlamat} 
+          <TextInput
+            style={[styles.input, { height: 80 }]}
+            multiline
+            placeholder="Jl. Raya Pemancingan No. 123..."
+            value={alamat}
+            onChangeText={setAlamat}
           />
         </View>
 
         {/* SECTION 3: DETAIL LAINNYA */}
         <View style={styles.section}>
           <Text style={styles.label}>Deskripsi Tempat</Text>
-          <TextInput 
-            style={[styles.input, {height: 80}]} 
-            multiline 
-            placeholder="Ceritakan keunggulan kolam Anda..." 
-            value={deskripsi} 
-            onChangeText={setDeskripsi} 
+          <TextInput
+            style={[styles.input, { height: 80 }]}
+            multiline
+            placeholder="Ceritakan keunggulan kolam Anda..."
+            value={deskripsi}
+            onChangeText={setDeskripsi}
           />
 
           <View style={styles.row}>
-            <TouchableOpacity style={{ flex: 1, marginRight: 10 }} onPress={() => setShowPicker('open')}>
+            <TouchableOpacity
+              style={{ flex: 1, marginRight: 10 }}
+              onPress={() => setShowPicker("open")}
+            >
               <Text style={styles.label}>Jam Buka</Text>
-              <View style={styles.input}><Text>{jamBuka}</Text></View>
+              <View style={styles.input}>
+                <Text>{jamBuka}</Text>
+              </View>
             </TouchableOpacity>
-            <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowPicker('close')}>
+            <TouchableOpacity
+              style={{ flex: 1 }}
+              onPress={() => setShowPicker("close")}
+            >
               <Text style={styles.label}>Jam Tutup</Text>
-              <View style={styles.input}><Text>{jamTutup}</Text></View>
+              <View style={styles.input}>
+                <Text>{jamTutup}</Text>
+              </View>
             </TouchableOpacity>
           </View>
         </View>
@@ -303,18 +330,28 @@ export default function TambahKolam() {
         <View style={styles.section}>
           <Text style={styles.label}>Fasilitas (Pilih yang tersedia)</Text>
           <View style={styles.facRow}>
-            {['Toilet', 'Musholla', 'Parkiran', 'Kantin', 'Wifi'].map(f => (
-              <TouchableOpacity 
-                key={f} 
-                style={[styles.facChip, facilities.includes(f) && styles.facChipActive]} 
+            {["Toilet", "Musholla", "Parkiran", "Kantin", "Wifi"].map((f) => (
+              <TouchableOpacity
+                key={f}
+                style={[
+                  styles.facChip,
+                  facilities.includes(f) && styles.facChipActive,
+                ]}
                 onPress={() => toggleFacility(f)}
               >
-                <Ionicons 
-                  name={facilities.includes(f) ? "checkbox" : "square-outline"} 
-                  size={16} 
-                  color={facilities.includes(f) ? "#fff" : "#64748B"} 
+                <Ionicons
+                  name={facilities.includes(f) ? "checkbox" : "square-outline"}
+                  size={16}
+                  color={facilities.includes(f) ? "#fff" : "#64748B"}
                 />
-                <Text style={[styles.facText, facilities.includes(f) && {color:'#fff'}]}>{f}</Text>
+                <Text
+                  style={[
+                    styles.facText,
+                    facilities.includes(f) && { color: "#fff" },
+                  ]}
+                >
+                  {f}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -322,7 +359,14 @@ export default function TambahKolam() {
 
         {/* SECTION 5: ITEM TAMBAHAN */}
         <View style={styles.section}>
-          <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom: 15}}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 15,
+            }}
+          >
             <Text style={styles.sectionTitle}>Item Tambahan (Opsional)</Text>
             <TouchableOpacity style={styles.btnAddItem} onPress={addNewItem}>
               <Text style={styles.btnAddItemText}>+ Tambah Item</Text>
@@ -332,76 +376,106 @@ export default function TambahKolam() {
           {extraItems.map((item, index) => (
             <View key={item.id} style={styles.itemCard}>
               <View style={styles.row}>
-                <TouchableOpacity style={styles.itemPhotoBox} onPress={() => pickImage(item.id)}>
+                <TouchableOpacity
+                  style={styles.itemPhotoBox}
+                  onPress={() => pickImage(item.id)}
+                >
                   {item.image ? (
-                    <Image source={{ uri: item.image.uri }} style={{ width: '100%', height: '100%', borderRadius: 8 }} />
+                    <Image
+                      source={{ uri: item.image.uri }}
+                      style={{ width: "100%", height: "100%", borderRadius: 8 }}
+                    />
                   ) : (
                     <Ionicons name="camera" size={20} color="#64748B" />
                   )}
                 </TouchableOpacity>
                 <View style={{ flex: 1, marginLeft: 10 }}>
-                  <TextInput 
-                    style={styles.inputSmall} 
-                    placeholder="Nama Item (cth: Joran)" 
+                  <TextInput
+                    style={styles.inputSmall}
+                    placeholder="Nama Item (cth: Joran)"
                     value={item.name}
                     onChangeText={(v) => {
                       const newItems = [...extraItems];
                       newItems[index].name = v;
                       setExtraItems(newItems);
-                    }} 
+                    }}
                   />
-                  <TextInput 
-                    style={styles.inputSmall} 
-                    placeholder="Harga" 
+                  <TextInput
+                    style={styles.inputSmall}
+                    placeholder="Harga"
                     keyboardType="numeric"
                     value={item.price}
                     onChangeText={(v) => {
                       const newItems = [...extraItems];
                       newItems[index].price = v;
                       setExtraItems(newItems);
-                    }} 
+                    }}
                   />
                 </View>
-                <TouchableOpacity onPress={() => setExtraItems(extraItems.filter(i => i.id !== item.id))}>
+                <TouchableOpacity
+                  onPress={() =>
+                    setExtraItems(extraItems.filter((i) => i.id !== item.id))
+                  }
+                >
                   <Ionicons name="trash" size={24} color="#EF4444" />
                 </TouchableOpacity>
               </View>
 
-              <View style={[styles.row, {marginTop: 10, gap: 10}]}>
+              <View style={[styles.row, { marginTop: 10, gap: 10 }]}>
                 {/* Tipe Item */}
-                <View style={{flex: 1}}>
+                <View style={{ flex: 1 }}>
                   <Text style={styles.labelSmall}>Tipe</Text>
                   <View style={styles.miniToggle}>
-                    {['Peralatan', 'Umpan'].map(t => (
-                      <TouchableOpacity 
-                        key={t} 
-                        style={[styles.miniBtn, item.type === t && styles.miniActive]}
+                    {["Peralatan", "Umpan"].map((t) => (
+                      <TouchableOpacity
+                        key={t}
+                        style={[
+                          styles.miniBtn,
+                          item.type === t && styles.miniActive,
+                        ]}
                         onPress={() => {
                           const newItems = [...extraItems];
                           newItems[index].type = t as any;
                           setExtraItems(newItems);
                         }}
                       >
-                        <Text style={[styles.miniText, item.type === t && {color:'#fff'}]}>{t}</Text>
+                        <Text
+                          style={[
+                            styles.miniText,
+                            item.type === t && { color: "#fff" },
+                          ]}
+                        >
+                          {t}
+                        </Text>
                       </TouchableOpacity>
                     ))}
                   </View>
                 </View>
                 {/* Satuan Item */}
-                <View style={{flex: 1}}>
+                <View style={{ flex: 1 }}>
                   <Text style={styles.labelSmall}>Satuan</Text>
                   <View style={styles.miniToggle}>
-                    {['Pcs', 'Unit', 'Jam'].map(s => (
-                      <TouchableOpacity 
-                        key={s} 
-                        style={[styles.miniBtn, item.unit === s && styles.miniActive]}
+                    {["Pcs", "Unit", "Jam"].map((s) => (
+                      <TouchableOpacity
+                        key={s}
+                        style={[
+                          styles.miniBtn,
+                          item.unit === s && styles.miniActive,
+                        ]}
                         onPress={() => {
                           const newItems = [...extraItems];
                           newItems[index].unit = s as any;
                           setExtraItems(newItems);
                         }}
                       >
-                        <Text style={[styles.miniText, item.unit === s && {color:'#fff'}]}>{s}</Text>
+                        <Text
+                          style={[
+                            styles.miniText,
+                            item.unit === s && { color: "#fff" },
+                          ]}
+                        >
+                          {s}
+                        </Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -411,8 +485,8 @@ export default function TambahKolam() {
           ))}
         </View>
 
-        <TouchableOpacity 
-          style={[styles.btnSimpan, loading && styles.btnSimpanDisabled]} 
+        <TouchableOpacity
+          style={[styles.btnSimpan, loading && styles.btnSimpanDisabled]}
           onPress={handleSimpan}
           disabled={loading}
         >
@@ -423,22 +497,26 @@ export default function TambahKolam() {
           )}
         </TouchableOpacity>
 
-        <View style={{height: 100}} />
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* TIME PICKER MODAL */}
       {showPicker && (
-        <DateTimePicker 
-          value={new Date()} 
-          mode="time" 
-          is24Hour={true} 
+        <DateTimePicker
+          value={new Date()}
+          mode="time"
+          is24Hour={true}
           onChange={(e, d) => {
             setShowPicker(null);
-            if(d) {
-              const s = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-              showPicker === 'open' ? setJamBuka(s) : setJamTutup(s);
+            if (d) {
+              const s = d.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              });
+              showPicker === "open" ? setJamBuka(s) : setJamTutup(s);
             }
-          }} 
+          }}
         />
       )}
     </KeyboardAvoidingView>

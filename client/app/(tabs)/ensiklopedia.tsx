@@ -169,8 +169,9 @@ export default function EncyclopediaScreen() {
           data={filteredArticles}
           keyExtractor={(item) => item.id_artikel.toString()}
           renderItem={({ item }) => <FishCard item={item} />}
-          contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.listContainer, { flexGrow: 1 }]} // <-- tambahkan flexGrow
+          showsVerticalScrollIndicator={true}
+          style={{ flex: 1 }}
         />
       )}
     </View>

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'rea
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CustomHeader from "@/components/CustomHeader";
 
 export default function ProfileMitra() {
   const router = useRouter();
@@ -58,7 +59,10 @@ const handleLogout = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
+      <CustomHeader
+              title="Profile Mitra"
+              showBackButton={false}
+            />
       
       <View style={styles.header}>
         <View style={styles.avatarContainer}>

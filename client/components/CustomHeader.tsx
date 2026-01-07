@@ -12,22 +12,24 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface CustomHeaderProps {
   title: string;
-  transparent?: boolean;
-  textColor?: string; // warna teks judul
-  backButtonStyle?: ViewStyle; // style tombol kembali
-  backIconColor?: string; // warna arrow
+  transparent?: boolean; // bikin background transparan
+  hideBorder?: boolean; // sembunyikan garis bawah
+  textColor?: string;
+  backButtonStyle?: ViewStyle;
+  backIconColor?: string;
   showCart?: boolean;
-  showBackButton?: boolean; // ✅ BARU: untuk show/hide tombol kembali
+  showBackButton?: boolean;
 }
 
 export default function CustomHeader({
   title,
   transparent = false,
+  hideBorder = false, // default false
   textColor = "#000",
   backButtonStyle,
   backIconColor = "#000",
   showCart = false,
-  showBackButton = true, // ✅ DEFAULT true agar tidak break komponen lain
+  showBackButton = true,
 }: CustomHeaderProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -40,12 +42,11 @@ export default function CustomHeader({
           height: insets.top + 60,
           paddingTop: insets.top,
           backgroundColor: transparent ? "transparent" : "white",
-          borderBottomWidth: transparent ? 0 : 1,
+          borderBottomWidth: hideBorder || transparent ? 0 : 1,
           borderBottomColor: "#F1F5F9",
         },
       ]}
     >
-      {/* Tombol Kembali - Hanya tampil jika showBackButton = true */}
       {showBackButton && (
         <TouchableOpacity
           style={[styles.backButton, { top: insets.top + 8 }, backButtonStyle]}
@@ -55,7 +56,6 @@ export default function CustomHeader({
         </TouchableOpacity>
       )}
 
-      {/* Judul Tengah */}
       <View style={styles.titleContainer}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           {showCart && (
