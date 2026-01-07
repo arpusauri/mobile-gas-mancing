@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { api } from '../../api/config';
+import { api, API_URL } from '../../api/config';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -17,12 +17,39 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 const { width, height } = Dimensions.get('window');
 
+// Type Definitions
+interface Order {
+  id: string;
+  orderId: number;
+  customer: string;
+  contact: string;
+  date: string;
+  status: string;
+  total: number;
+}
+
+interface Pool {
+  id: string;
+  name: string;
+  location: string;
+  rating: string;
+  reviews: string;
+  price: string;
+  unit: string;
+  description: string;
+  openTime: string;
+  closeTime: string;
+  facilities: string[];
+  image: string;
+  orders: Order[];
+}
+
 export default function MitraDashboard() {
   const router = useRouter();
-  const [pools, setPools] = useState([]);
+  const [pools, setPools] = useState<Pool[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isEditVisible, setEditVisible] = useState(false);
-  const [editData, setEditData] = useState<any>(null);
+  const [editData, setEditData] = useState<Pool | null>(null);
   const [showPicker, setShowPicker] = useState<'open' | 'close' | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -95,19 +122,31 @@ export default function MitraDashboard() {
 
             console.log(`✅ Orders for ${place.title}:`, placeOrders.length);
 
+            // Construct proper image URL
+            let imageUrl = 'https://via.placeholder.com/400x300?text=No+Image';
+            if (place.image_url && place.image_url !== 'default_place.jpg') {
+              // Jika sudah full URL (http/https), pakai langsung
+              if (place.image_url.startsWith('http')) {
+                imageUrl = place.image_url;
+              } else {
+                // Jika filename saja, construct full URL dengan API_URL
+                imageUrl = `${API_URL}/uploads/${place.image_url}`;
+              }
+            }
+
             return {
               id: place.id_tempat.toString(),
-              name: place.title,
-              location: place.location,
-              rating: place.average_rating ? place.average_rating.toString() : '0.0',
+              name: place.title || 'Tanpa Nama',
+              location: place.location || '-',
+              rating: place.average_rating ? parseFloat(place.average_rating).toFixed(1) : '0.0',
               reviews: place.total_reviews_count ? place.total_reviews_count.toString() : '0',
-              price: place.base_price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'),
-              unit: place.price_unit.toLowerCase(),
+              price: parseFloat(place.base_price || 0).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.'),
+              unit: (place.price_unit || 'jam').toLowerCase(),
               description: place.full_description || place.description || '',
               openTime: extractTime(place.description, 'open') || '08:00',
               closeTime: extractTime(place.description, 'close') || '20:00',
-              facilities: place.fasilitas || [],
-              image: place.image_url || 'https://via.placeholder.com/400x300?text=No+Image',
+              facilities: place.fasilitas || [], // Sudah array of strings dari backend
+              image: imageUrl,
               orders: placeOrders.map((order: any) => ({
                 id: order.nomor_pesanan,
                 orderId: order.id_pesanan,
@@ -115,24 +154,35 @@ export default function MitraDashboard() {
                 contact: order.kontak_pemesan,
                 date: formatDate(order.tgl_mulai_sewa),
                 status: order.status_pesanan,
-                total: order.total_biaya,
+                total: parseFloat(order.total_biaya || 0),
               }))
             };
           } catch (err) {
             console.error('Error fetching orders for place:', place.id_tempat, err);
+            
+            // Construct image URL untuk error case juga
+            let imageUrl = 'https://via.placeholder.com/400x300?text=No+Image';
+            if (place.image_url && place.image_url !== 'default_place.jpg') {
+              if (place.image_url.startsWith('http')) {
+                imageUrl = place.image_url;
+              } else {
+                imageUrl = `${API_URL}/uploads/${place.image_url}`;
+              }
+            }
+            
             return {
               id: place.id_tempat.toString(),
-              name: place.title,
-              location: place.location,
-              rating: place.average_rating ? place.average_rating.toString() : '0.0',
+              name: place.title || 'Tanpa Nama',
+              location: place.location || '-',
+              rating: place.average_rating ? parseFloat(place.average_rating).toFixed(1) : '0.0',
               reviews: place.total_reviews_count ? place.total_reviews_count.toString() : '0',
-              price: place.base_price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'),
-              unit: place.price_unit.toLowerCase(),
+              price: parseFloat(place.base_price || 0).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.'),
+              unit: (place.price_unit || 'jam').toLowerCase(),
               description: place.full_description || place.description || '',
               openTime: '08:00',
               closeTime: '20:00',
               facilities: place.fasilitas || [],
-              image: place.image_url || 'https://via.placeholder.com/400x300?text=No+Image',
+              image: imageUrl,
               orders: []
             };
           }
@@ -192,6 +242,8 @@ export default function MitraDashboard() {
   };
 
   const toggleFacility = (fac: string) => {
+    if (!editData) return;
+    
     const current = editData.facilities || [];
     setEditData({ 
       ...editData, 
@@ -202,24 +254,68 @@ export default function MitraDashboard() {
   };
 
   const handleSaveEdit = async () => {
+    if (!editData || !mitraId || !userToken) return;
+    
     try {
       setLoading(true);
       
-      const updateData = {
-        title: editData.name,
-        location: editData.location,
-        base_price: parseFloat(editData.price.replace(/\./g, '')),
-        price_unit: editData.unit.charAt(0).toUpperCase() + editData.unit.slice(1),
-        description: `Buka: ${editData.openTime} - ${editData.closeTime}. ${editData.description}`,
-        full_description: editData.description,
-      };
-
-      await api.places.update(parseInt(editData.id), updateData, userToken!);
+      const safeDescription = editData.description || '';
       
-      await fetchMitraProperties(mitraId!, userToken!);
+      // 1. GUNAKAN FORMDATA
+      const formData = new FormData();
+
+      // 2. Masukkan data (Key harus sama dengan yang diminta Backend)
+      formData.append('title', editData.name); 
+      formData.append('location', editData.location);
+      
+      // Bersihkan format harga (hapus titik)
+      const cleanPrice = editData.price.replace(/\./g, '');
+      formData.append('base_price', cleanPrice);
+      
+      // Format unit
+      const cleanUnit = editData.unit.charAt(0).toUpperCase() + editData.unit.slice(1);
+      formData.append('price_unit', cleanUnit);
+      
+      // Deskripsi
+      const finalDesc = `Buka: ${editData.openTime} - ${editData.closeTime}. ${safeDescription}`;
+      formData.append('description', finalDesc);
+      
+      // Fasilitas
+      if (editData.facilities) {
+         formData.append('fasilitas', JSON.stringify(editData.facilities));
+      }
+      
+      formData.append('open_time', editData.openTime || '08:00');
+      formData.append('close_time', editData.closeTime || '20:00');
+
+      // 3. LOGIKA UPLOAD GAMBAR
+      // Hanya kirim jika gambar adalah file lokal (bukan http)
+      if (editData.image && !editData.image.startsWith('http')) {
+        const localUri = editData.image;
+        const filename = localUri.split('/').pop();
+        
+        // Tebak tipe file
+        const match = /\.(\w+)$/.exec(filename || '');
+        const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+        formData.append('image', {
+          uri: localUri,
+          name: filename || 'update.jpg',
+          type: type,
+        } as any);
+      }
+
+      console.log('📤 Sending FormData Update...');
+
+      // 4. Panggil API
+      await api.places.update(parseInt(editData.id), formData, userToken);
+      
+      // 5. Refresh Data
+      await fetchMitraProperties(mitraId, userToken);
       
       setEditVisible(false);
       Alert.alert('Berhasil', 'Data properti telah diperbarui.');
+
     } catch (error: any) {
       console.error('Error updating property:', error);
       Alert.alert('Error', error.message || 'Gagal memperbarui properti');
@@ -250,9 +346,9 @@ export default function MitraDashboard() {
           onPress: async () => {
             try {
               await api.mitra.deleteBooking(orderId, userToken!);
-              setPools(pools.map(p => 
+              setPools(pools.map((p: Pool) => 
                 p.id === poolId 
-                  ? { ...p, orders: p.orders.filter(o => o.orderId !== orderId) } 
+                  ? { ...p, orders: p.orders.filter((o: Order) => o.orderId !== orderId) } 
                   : p
               ));
               Alert.alert('Berhasil', 'Pesanan telah dibatalkan');
@@ -331,7 +427,7 @@ export default function MitraDashboard() {
             <Text style={styles.emptySubtext}>Klik tab "Tambah Kolam" untuk menambahkan properti pertama Anda</Text>
           </View>
         ) : (
-          pools.map((item) => (
+          pools.map((item: Pool) => (
             <View key={item.id} style={styles.cardWrapper}>
               <ImageBackground 
                 source={{ uri: item.image }} 
@@ -355,7 +451,7 @@ export default function MitraDashboard() {
 
                   <View style={styles.bottomRow}>
                     <View style={[styles.facilityRow, { flex: 1, flexWrap: 'wrap', alignSelf: 'flex-end' }]}>
-                      {item.facilities.map((fac, idx) => (
+                      {item.facilities.map((fac: string, idx: number) => (
                         <View key={idx} style={styles.facilityBadge}>
                           <Text style={styles.facilityText}>{fac}</Text>
                         </View>
@@ -408,7 +504,7 @@ export default function MitraDashboard() {
                           <Text style={[styles.hCell, { width: 90 }]}>STATUS</Text>
                           <Text style={[styles.hCell, { width: 70 }]}>AKSI</Text>
                         </View>
-                        {item.orders.map((order) => (
+                        {item.orders.map((order: Order) => (
                           <View key={order.orderId} style={styles.tableRow}>
                             <Text style={[styles.rCell, { width: 80 }]}>{order.id}</Text>
                             <Text style={[styles.rCell, { width: 100 }]}>{order.customer}</Text>
@@ -472,16 +568,16 @@ export default function MitraDashboard() {
               <Text style={styles.label}>Nama Kolam</Text>
               <TextInput 
                 style={styles.input} 
-                value={editData?.name} 
-                onChangeText={(t) => setEditData({...editData, name: t})} 
+                value={editData?.name || ''} 
+                onChangeText={(t) => setEditData(editData ? {...editData, name: t} : null)} 
               />
 
               <Text style={styles.label}>Alamat Lengkap</Text>
               <TextInput 
                 style={[styles.input, {height: 60, textAlignVertical: 'top'}]} 
                 multiline 
-                value={editData?.location} 
-                onChangeText={(t) => setEditData({...editData, location: t})} 
+                value={editData?.location || ''} 
+                onChangeText={(t) => setEditData(editData ? {...editData, location: t} : null)} 
               />
 
               <View style={styles.row}>
@@ -490,8 +586,8 @@ export default function MitraDashboard() {
                   <TextInput 
                     style={styles.input} 
                     keyboardType="numeric"
-                    value={editData?.price} 
-                    onChangeText={(t) => setEditData({...editData, price: t})} 
+                    value={editData?.price || ''} 
+                    onChangeText={(t) => setEditData(editData ? {...editData, price: t} : null)} 
                   />
                 </View>
                 <View style={{ flex: 1 }}>
@@ -500,7 +596,7 @@ export default function MitraDashboard() {
                     {['jam', 'hari'].map(u => (
                       <TouchableOpacity 
                         key={u} 
-                        onPress={() => setEditData({...editData, unit: u})} 
+                        onPress={() => setEditData(editData ? {...editData, unit: u} : null)} 
                         style={[styles.uBtn, editData?.unit === u && styles.uActive]}
                       >
                         <Text style={{ 
@@ -520,18 +616,18 @@ export default function MitraDashboard() {
               <TextInput 
                 style={[styles.input, {height: 70, textAlignVertical: 'top'}]} 
                 multiline 
-                value={editData?.description} 
-                onChangeText={(t) => setEditData({...editData, description: t})} 
+                value={editData?.description || ''} 
+                onChangeText={(t) => setEditData(editData ? {...editData, description: t} : null)} 
               />
 
               <View style={styles.row}>
                 <TouchableOpacity style={{flex:1, marginRight:10}} onPress={() => setShowPicker('open')}>
                   <Text style={styles.label}>Buka</Text>
-                  <View style={styles.input}><Text>{editData?.openTime}</Text></View>
+                  <View style={styles.input}><Text>{editData?.openTime || '08:00'}</Text></View>
                 </TouchableOpacity>
                 <TouchableOpacity style={{flex:1}} onPress={() => setShowPicker('close')}>
                   <Text style={styles.label}>Tutup</Text>
-                  <View style={styles.input}><Text>{editData?.closeTime}</Text></View>
+                  <View style={styles.input}><Text>{editData?.closeTime || '20:00'}</Text></View>
                 </TouchableOpacity>
               </View>
 
@@ -542,13 +638,13 @@ export default function MitraDashboard() {
                     key={f} 
                     style={[
                       styles.facChip, 
-                      editData?.facilities.includes(f) && styles.facChipActive
+                      editData?.facilities?.includes(f) && styles.facChipActive
                     ]} 
                     onPress={() => toggleFacility(f)}
                   >
                     <Text style={[
                       styles.facChipText, 
-                      editData?.facilities.includes(f) && {color: '#fff'}
+                      editData?.facilities?.includes(f) && {color: '#fff'}
                     ]}>
                       {f}
                     </Text>
@@ -580,7 +676,7 @@ export default function MitraDashboard() {
           is24Hour={true} 
           onChange={(e, d) => {
             setShowPicker(null);
-            if(d) {
+            if (d && editData) {
               const timeStr = d.toLocaleTimeString([], { 
                 hour: '2-digit', 
                 minute: '2-digit', 
