@@ -1,16 +1,17 @@
 const MitraModel = require("../models/mitraModel");
-const PlaceModel = require("../models/placeModel"); // Pastikan Import ini ada
+const PlaceModel = require("../models/placeModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 const JWT_SECRET = process.env.JWT_SECRET || "rahasia_negara_api";
 
 exports.createMitra = async (req, res) => {
-  let newMitraId = null; // Variable penampung ID untuk keperluan rollback
+  let newMitraId = null;
 
   try {
     const data = req.body;
     console.log("1. Menerima Data Registrasi...");
+    console.log("Data received:", data);
 
     // --- VALIDASI DASAR ---
     if (!data.nama_lengkap || !data.email || !data.password_hash) {
@@ -25,7 +26,6 @@ exports.createMitra = async (req, res) => {
 
     const mitraData = {
       nama_lengkap: data.nama_lengkap,
-      nama_tempat: data.nama_tempat,
       email: data.email,
       password_hash: hashedPassword,
       no_telepon: data.no_telepon,
@@ -44,25 +44,48 @@ exports.createMitra = async (req, res) => {
       console.log("3. Menyimpan Data Properti...");
 
       try {
-        // === PERBAIKAN DI SINI (PARSING DATA) ===
+        // === PARSING & FORMATTING DATA ===
         let itemsParsed = [];
-        let fasilitasParsed = [];
+        let fasilitasIds = [];
 
-        // Cek dan Parse 'items' (item_sewa)
+        // Parse 'items' (item_sewa)
         if (data.items) {
-          // Jika tipe data string (karena FormData), kita parse. Jika sudah object/array, biarkan.
-          itemsParsed =
-            typeof data.items === "string"
-              ? JSON.parse(data.items)
-              : data.items;
+          const rawItems = typeof data.items === "string" ? JSON.parse(data.items) : data.items;
+          
+          // Format items sesuai yang diharapkan placeModel
+          itemsParsed = rawItems
+            .filter(item => item.name && item.price) // Filter item yang valid
+            .map(item => ({
+              nama_item: item.name || '',
+              price: parseFloat(item.price) || 0,
+              price_unit: item.unit || 'Pcs',
+              tipe_item: item.type || 'peralatan',
+              image_url: item.image || null
+            }));
+          
+          console.log("Items parsed:", itemsParsed);
         }
 
-        // Cek dan Parse 'fasilitas'
+        // Parse 'fasilitas' - KONVERSI NAMA KE ID
         if (data.fasilitas) {
-          fasilitasParsed =
-            typeof data.fasilitas === "string"
-              ? JSON.parse(data.fasilitas)
-              : data.fasilitas;
+          const namaFasilitas = typeof data.fasilitas === "string" 
+            ? JSON.parse(data.fasilitas) 
+            : data.fasilitas;
+
+          // Mapping nama fasilitas ke ID (sesuai tabel fasilitas di database)
+          const fasilitasMap = {
+            'Toilet': 1,
+            'Musholla': 2,
+            'Parkiran': 3,
+            'Kantin': 4,
+            'Wifi': 5
+          };
+
+          fasilitasIds = namaFasilitas
+            .map(nama => fasilitasMap[nama])
+            .filter(id => id !== undefined);
+          
+          console.log("Fasilitas IDs:", fasilitasIds);
         }
         // =========================================
 
@@ -70,22 +93,23 @@ exports.createMitra = async (req, res) => {
         let uploadedImage = "default_place.jpg";
         if (req.file) {
           uploadedImage = req.file.filename;
+          console.log("Image uploaded:", uploadedImage);
         }
 
         const propertyData = {
           title: data.namaProperti,
           location: data.alamatProperti,
-          base_price: data.hargaSewa,
-          price_unit: data.satuanSewa,
-          description: `Buka: ${data.jamBuka} - ${data.jamTutup}. ${data.deskripsi}`,
-          full_description: data.deskripsi,
+          base_price: parseFloat(data.hargaSewa) || 0,
+          price_unit: data.satuanSewa || 'Jam',
+          description: `Buka: ${data.jamBuka || '08:00'} - ${data.jamTutup || '20:00'}. ${data.deskripsi || ''}`,
+          full_description: data.deskripsi || '',
           image_url: uploadedImage,
-
-          fasilitas: fasilitasParsed,
+          fasilitas: fasilitasIds,
           item_sewa: itemsParsed,
-
           id_mitra: newMitraId,
         };
+
+        console.log("Property data to save:", propertyData);
 
         await PlaceModel.create(propertyData);
         console.log("4. Properti Berhasil Disimpan");
@@ -127,6 +151,7 @@ exports.createMitra = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -151,7 +176,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       {
         id: mitra.id_mitra,
-        role: "mitra", // Tandai sebagai mitra
+        role: "mitra",
         email: mitra.email,
       },
       JWT_SECRET,
@@ -164,7 +189,6 @@ exports.login = async (req, res) => {
       data: {
         token: token,
         mitra: {
-          // Sesuaikan struktur object agar sama dengan authStore
           id_mitra: mitra.id_mitra,
           nama_lengkap: mitra.nama_lengkap,
           email: mitra.email,
@@ -206,7 +230,6 @@ exports.updateMitra = async (req, res) => {
     const isUpdated = await MitraModel.update(id, data);
 
     if (!isUpdated) {
-      // Bisa jadi ID tidak ketemu, atau tidak ada data yang berubah
       const checkUser = await MitraModel.findById(id);
       if (!checkUser) {
         return res
@@ -244,7 +267,7 @@ exports.deleteMitra = async (req, res) => {
 exports.getPropertyBookings = async (req, res) => {
   try {
     const { mitraId } = req.params;
-    const bookings = await MitraModel.getPropertyBookings(mitraId); // Panggil model
+    const bookings = await MitraModel.getPropertyBookings(mitraId);
 
     res.json({
       success: true,
@@ -260,7 +283,7 @@ exports.updatePropertyBookingStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    const isUpdated = await MitraModel.updatePropertyBookingStatus(id, status); // Panggil model
+    const isUpdated = await MitraModel.updatePropertyBookingStatus(id, status);
 
     if (!isUpdated) {
       return res.status(404).json({ success: false, message: "Pesanan tidak ditemukan." });
@@ -276,7 +299,7 @@ exports.updatePropertyBookingStatus = async (req, res) => {
 exports.deletePropertyBooking = async (req, res) => {
   try {
     const { id } = req.params;
-    const isDeleted = await MitraModel.deletePropertyBooking(id); // Panggil model
+    const isDeleted = await MitraModel.deletePropertyBooking(id);
 
     if (!isDeleted) {
       return res.status(404).json({ success: false, message: "Pesanan tidak ditemukan." });

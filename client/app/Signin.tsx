@@ -34,6 +34,8 @@ const InputField = ({
   iconColor,
   value,
   onChangeText,
+  keyboardType = "default",
+  autoCapitalize = "none",
 }: any) => (
   <View style={styles.inputContainer}>
     <View style={styles.iconWrapper}>
@@ -46,12 +48,20 @@ const InputField = ({
       secureTextEntry={isPassword}
       value={value}
       onChangeText={onChangeText}
+      keyboardType={keyboardType}
+      autoCapitalize={autoCapitalize}
+      autoCorrect={false}
     />
   </View>
 );
 
 export default function SignInScreen() {
   const router = useRouter();
+  
+  // Toggle Customer/Mitra
+  const [userType, setUserType] = useState<'customer' | 'mitra'>('customer');
+  
+  // Form states
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -77,24 +87,51 @@ export default function SignInScreen() {
       setLoading(true);
       setError("");
 
-      const response = await api.auth.signin({
-        email,
-        password,
-      });
+      if (userType === 'customer') {
+        // LOGIN CUSTOMER
+        console.log("🔵 Attempting customer login...");
+        const response = await api.auth.signin({
+          email: email.trim(),
+          password,
+        });
 
-      console.log("Login response:", response);
+        console.log("✅ Customer login response:", response);
 
-      await AsyncStorage.setItem("token", response.token);
-      await AsyncStorage.setItem(
-        "userId",
-        response.user.id_pengguna.toString()
-      );
+        await AsyncStorage.setItem("userToken", response.token);
+        await AsyncStorage.setItem("userId", response.user.id_pengguna.toString());
+        await AsyncStorage.setItem("userRole", "customer");
+        await AsyncStorage.setItem("userData", JSON.stringify(response.user));
 
-      console.log("TOKEN SAVED");
-      console.log("USER ID SAVED:", response.user.id_pengguna);
+        console.log("✅ Customer token saved, redirecting to /(tabs)...");
 
-      router.replace("/(tabs)");
+        router.replace("/(tabs)");
+      } else {
+        // LOGIN MITRA
+        console.log("🟢 Attempting mitra login...");
+        const response = await api.mitra.login({
+          email: email.trim(),
+          password,
+        });
+
+        console.log("✅ Mitra login response:", response);
+
+        // Simpan dengan structure yang benar
+        await AsyncStorage.setItem("userToken", response.token);
+        await AsyncStorage.setItem("userRole", "mitra");
+        
+        // Pastikan response.mitra ada
+        if (response.mitra) {
+          await AsyncStorage.setItem("userId", response.mitra.id_mitra.toString());
+          await AsyncStorage.setItem("userData", JSON.stringify(response.mitra));
+        }
+
+        console.log("✅ Mitra token saved, redirecting to /(mitra)...");
+
+        // Redirect ke mitra tabs
+        router.replace("/(mitra)");
+      }
     } catch (err) {
+      console.error("❌ Login error:", err);
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
       Alert.alert("Error", errorMessage);
@@ -102,7 +139,6 @@ export default function SignInScreen() {
       setLoading(false);
     }
   };
-
 
   return (
     <BackgroundLayout>
@@ -130,6 +166,55 @@ export default function SignInScreen() {
           {/* PAGE TITLE */}
           <Text style={styles.pageTitle}>Sign In</Text>
 
+          {/* TOGGLE CUSTOMER / MITRA */}
+          <View style={styles.toggleContainer}>
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                userType === 'customer' && styles.toggleButtonActive,
+              ]}
+              onPress={() => setUserType('customer')}
+              activeOpacity={0.7}
+            >
+              <Ionicons 
+                name="person" 
+                size={18} 
+                color={userType === 'customer' ? '#fff' : '#666'} 
+              />
+              <Text
+                style={[
+                  styles.toggleButtonText,
+                  userType === 'customer' && styles.toggleButtonTextActive,
+                ]}
+              >
+                Customer
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                userType === 'mitra' && styles.toggleButtonActive,
+              ]}
+              onPress={() => setUserType('mitra')}
+              activeOpacity={0.7}
+            >
+              <Ionicons 
+                name="business" 
+                size={18} 
+                color={userType === 'mitra' ? '#fff' : '#666'} 
+              />
+              <Text
+                style={[
+                  styles.toggleButtonText,
+                  userType === 'mitra' && styles.toggleButtonTextActive,
+                ]}
+              >
+                Mitra
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* ERROR MESSAGE */}
           {error ? (
             <View style={styles.errorBox}>
@@ -152,6 +237,8 @@ export default function SignInScreen() {
               iconColor="#000000"
               value={email}
               onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
             />
 
             {/* Password */}
@@ -184,12 +271,21 @@ export default function SignInScreen() {
 
           {/* FOOTER LINKS */}
           <View style={styles.footerLinks}>
-            <TouchableOpacity onPress={() => router.push("/Signup")}>
-              <Text style={styles.linkText}>
-                Don't have an account?{" "}
-                <Text style={styles.boldLink}>Sign Up</Text>
-              </Text>
-            </TouchableOpacity>
+            {userType === 'customer' ? (
+              <TouchableOpacity onPress={() => router.push("/Signup")}>
+                <Text style={styles.linkText}>
+                  Don't have an account?{" "}
+                  <Text style={styles.boldLink}>Sign Up</Text>
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={() => router.push("/FormMitra")}>
+                <Text style={styles.linkText}>
+                  Belum punya akun mitra?{" "}
+                  <Text style={styles.boldLink}>Daftar Sekarang</Text>
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -228,7 +324,38 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "black",
     textAlign: "center",
+    marginBottom: 20,
+  },
+
+  // TOGGLE CUSTOMER/MITRA
+  toggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#E8EDF5',
+    borderRadius: 25,
+    padding: 4,
     marginBottom: 25,
+    alignSelf: 'center',
+    width: '80%',
+  },
+  toggleButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 6,
+  },
+  toggleButtonActive: {
+    backgroundColor: '#2A5CA8',
+  },
+  toggleButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  toggleButtonTextActive: {
+    color: '#fff',
   },
 
   // ERROR BOX

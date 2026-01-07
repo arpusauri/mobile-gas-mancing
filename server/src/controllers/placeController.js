@@ -257,3 +257,60 @@ exports.getAllFacilities = async (req, res) => {
     });
   }
 };
+
+// 9. GET PLACES BY MITRA ID
+exports.getPlacesByMitraId = async (req, res) => {
+  try {
+    const { mitraId } = req.params;
+    const db = require('../config/database');
+    
+    const [places] = await db.query(
+      `SELECT * FROM tempat_pemancingan WHERE id_mitra = ?`,
+      [mitraId]
+    );
+
+    if (places.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const placeIds = places.map((p) => p.id_tempat);
+
+    const [allFacilities] = await db.query(
+      `SELECT tf.id_tempat, f.nama_fasilitas 
+       FROM tempat_fasilitas tf
+       JOIN fasilitas f ON tf.id_fasilitas = f.id_fasilitas
+       WHERE tf.id_tempat IN (?)`,
+      [placeIds]
+    );
+
+    const [allItems] = await db.query(
+      `SELECT id_tempat, id_item, nama_item, price, price_unit, image_url, tipe_item
+       FROM item_sewa
+       WHERE id_tempat IN (?)`,
+      [placeIds]
+    );
+
+    const mappedFacilities = {};
+    allFacilities.forEach((f) => {
+      if (!mappedFacilities[f.id_tempat]) mappedFacilities[f.id_tempat] = [];
+      mappedFacilities[f.id_tempat].push(f.nama_fasilitas);
+    });
+
+    const mappedItems = {};
+    allItems.forEach((i) => {
+      if (!mappedItems[i.id_tempat]) mappedItems[i.id_tempat] = [];
+      mappedItems[i.id_tempat].push(i);
+    });
+
+    const result = places.map((place) => ({
+      ...place,
+      fasilitas: mappedFacilities[place.id_tempat] || [],
+      item_sewa: mappedItems[place.id_tempat] || [],
+    }));
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    console.error("Error getPlacesByMitraId:", error);
+    res.status(500).json({ success: false, error: "Internal Server Error" });
+  }
+};
